@@ -109,6 +109,38 @@ def admin(principal: TokenPrincipal = Depends(require_scopes("admin"))) -> dict:
 
 Prefiere **por router** para que la lógica quede dentro del módulo (extraíble).
 
+## Manejo de errores
+
+No traduzcas a mano cada error de negocio a `HTTPException` en el controller. Lanza un
+**error de dominio** (`app/Core/Errors`) desde donde ocurra (service, repository) y un
+**handler global** (`app/Core/Http/ExceptionHandler.py`, ya montado por `create_app`) lo
+convierte en un sobre JSON único:
+
+```python
+from app.Core.Errors import ResourceNotFoundError, DomainError
+
+# En un service / repository (NO lo atrapes en el controller):
+raise ResourceNotFoundError("La compañía 7 no existe", details={"id": 7})
+# raise DomainError("Saldo insuficiente", error_code="insufficient_funds", status_code=402)
+```
+
+Respuesta (status según el error; aquí `404`):
+
+```json
+{ "error_code": "resource_not_found", "message": "La compañía 7 no existe", "details": {"id": 7} }
+```
+
+- Subclases listas: `ResourceNotFoundError` (404), `ConflictError` (409),
+  `UnauthorizedError` (401), `ForbiddenError` (403). O `DomainError` directo con
+  `error_code`/`status_code` a mano.
+- `error_code` es **estable** (los clientes ramifican en él); `message` es legible;
+  `details` es opcional.
+- Cualquier excepción **no prevista** (un bug, infra caída) cae en el catch-all: el cliente
+  recibe un `500` genérico `{"error_code": "internal_error", ...}` y el **traceback completo
+  va al log** — nunca se filtran internals en la respuesta.
+- Es **aditivo**: los `HTTPException` de FastAPI (p. ej. el `401` de `require_api_key`) y el
+  `422` de validación de Pydantic siguen igual, con su `{"detail": ...}`.
+
 ## El endpoint `/status`
 
 El único endpoint que registra el kernel directamente: devuelve el nombre del servicio,

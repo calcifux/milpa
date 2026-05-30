@@ -19,6 +19,7 @@ from loguru import logger
 
 from app.Core.Config import settings
 from app.Core.Database import Base, engine
+from app.Core.Http.ExceptionHandler import register_exception_handlers
 from app.Core.Http.Middleware import register_middlewares
 from app.Core.Logging import setup_logging
 from app.Core.Registry import import_all_models, iter_routers, iter_static_mounts, module_packages
@@ -68,6 +69,10 @@ def create_app() -> FastAPI:
 
     # Stack base de middlewares (CORS/TrustedHost/GZip) según Settings.
     register_middlewares(app)
+
+    # Handlers globales: DomainError → JSON {error_code,message,details}; catch-all → 500
+    # genérico + log. Aditivo: no toca los HTTPException de FastAPI.
+    register_exception_handlers(app)
 
     # Auto-montaje: cada APIRouter descubierto en Modules/<X>/Http/ se incluye.
     for router in iter_routers():
