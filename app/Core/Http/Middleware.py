@@ -11,12 +11,16 @@ el módulo). El registry global con prioridad se hará on-demand si hace falta.
 
 from __future__ import annotations
 
+from typing import Literal, cast
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.Core.Config import settings
+from app.Core.Http.Csrf import CsrfMiddleware
 from app.Core.Http.SecurityHeaders import SecurityHeadersMiddleware
 
 
@@ -49,6 +53,22 @@ def register_middlewares(app: FastAPI) -> None:
     # SecurityHeaders: el más interno (ve la respuesta ya formada y le pega los headers).
     if settings.security_headers_enabled:
         app.add_middleware(SecurityHeadersMiddleware, headers=_security_headers())
+
+    # CSRF (double-submit): protege el carril cookie/sesión; exime bearer/JWT.
+    if settings.csrf_enabled:
+        app.add_middleware(CsrfMiddleware)
+
+    # Sesión firmada (cookie): habilita el carril browser/HTMX. Solo si hay secreto.
+    # HttpOnly siempre; Secure/SameSite por Settings.
+    if settings.session_secret:
+        app.add_middleware(
+            SessionMiddleware,
+            secret_key=settings.session_secret,
+            session_cookie=settings.session_cookie,
+            max_age=settings.session_ttl_seconds,
+            same_site=cast("Literal['lax', 'strict', 'none']", settings.session_same_site),
+            https_only=settings.session_secure,
+        )
 
     # GZip: comprime la respuesta ya formada.
     if settings.gzip_enabled:

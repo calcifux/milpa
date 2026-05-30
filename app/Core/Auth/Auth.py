@@ -51,6 +51,17 @@ class Auth:
         return JwtGuard().issue(user) if user is not None else None
 
     @staticmethod
+    def login(request: Request, user: Authenticatable) -> None:
+        """Inicia sesión por COOKIE (carril browser): guarda el id en la sesión firmada.
+        Requiere SessionMiddleware montado (SESSION_SECRET en .env)."""
+        request.session["user_id"] = str(user.get_auth_identifier())
+
+    @staticmethod
+    def logout(request: Request) -> None:
+        """Cierra la sesión por cookie (vacía la sesión)."""
+        request.session.clear()
+
+    @staticmethod
     def user() -> Authenticatable | None:
         return _current_user.get()
 

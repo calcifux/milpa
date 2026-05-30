@@ -58,6 +58,20 @@ class JwtGuard:
         return issue_token(str(user.get_auth_identifier()))
 
 
+class SessionGuard:
+    """Sesión en cookie firmada (Starlette SessionMiddleware). Carril browser/HTMX."""
+
+    def authenticate(self, request: Request) -> Authenticatable | None:
+        # scope["session"] solo existe si SessionMiddleware está montado (SESSION_SECRET set).
+        session = request.scope.get("session")
+        if not session:
+            return None
+        subject = session.get("user_id")
+        if subject is None:
+            return None
+        return get_user_provider().by_id(subject)
+
+
 class PassportGuard:
     """Bearer RS256 externo de Laravel Passport (reusa la validación de `Passport.py`)."""
 
@@ -77,6 +91,8 @@ def get_guard(name: str | None = None) -> Guard:
     guard_name = name or settings.auth_guard
     if guard_name == "jwt":
         return JwtGuard()
+    if guard_name == "session":
+        return SessionGuard()
     if guard_name == "passport":
         return PassportGuard()
-    raise ValueError(f"AUTH_GUARD desconocido: {guard_name!r} (usa jwt|passport).")
+    raise ValueError(f"AUTH_GUARD desconocido: {guard_name!r} (usa jwt|session|passport).")

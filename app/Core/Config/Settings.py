@@ -136,6 +136,19 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_ttl_seconds: int = 3600  # vigencia del JWT (1 h)
 
+    # --- Auth: sesión cookie (carril browser/HTMX, estilo Sanctum) ---
+    # Firma la cookie de sesión (Starlette SessionMiddleware). Vacío => no se monta la sesión.
+    session_secret: str = ""
+    session_cookie: str = "milpa_session"
+    session_ttl_seconds: int = 1209600  # 14 días
+    session_secure: bool = False  # True en PROD (HTTPS): cookie con flag Secure. HttpOnly siempre on.
+    session_same_site: str = "lax"  # lax | strict | none
+
+    # --- CSRF (double-submit cookie; protege el carril cookie/sesión, exime bearer/JWT) ---
+    csrf_enabled: bool = True
+    csrf_cookie: str = "milpa_csrf"  # NO HttpOnly: el front/HTMX lo lee y lo reenvía en el header
+    csrf_header: str = "X-CSRF-Token"
+
     # --- Auth: llave pública de Passport (RS256, tokens EXTERNOS de Laravel) ---
     passport_public_key: str | None = None
     passport_public_key_path: str | None = None

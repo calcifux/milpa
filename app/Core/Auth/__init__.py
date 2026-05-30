@@ -14,7 +14,7 @@ from app.Core.Auth.Auth import (
     set_current_user,
 )
 from app.Core.Auth.Contracts import Authenticatable, AuthenticatableMixin, UserProvider
-from app.Core.Auth.Guards import JwtGuard, PassportGuard, get_guard
+from app.Core.Auth.Guards import JwtGuard, PassportGuard, SessionGuard, get_guard
 from app.Core.Auth.Hash import Hash
 from app.Core.Auth.Passport import TokenPrincipal, get_current_token, require_scopes
 from app.Core.Auth.Providers import SqlAlchemyUserProvider, get_user_provider, set_user_provider
@@ -28,6 +28,7 @@ __all__ = [
     "JwtGuard",
     "OptionalUser",
     "PassportGuard",
+    "SessionGuard",
     "SqlAlchemyUserProvider",
     "TokenPrincipal",
     "UserProvider",
