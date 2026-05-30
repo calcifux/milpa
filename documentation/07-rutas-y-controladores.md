@@ -109,37 +109,48 @@ def admin(principal: TokenPrincipal = Depends(require_scopes("admin"))) -> dict:
 
 Prefiere **por router** para que la lógica quede dentro del módulo (extraíble).
 
-## Manejo de errores
+## Manejo de errores (RFC 9457 — Problem Details)
 
 No traduzcas a mano cada error de negocio a `HTTPException` en el controller. Lanza un
 **error de dominio** (`app/Core/Errors`) desde donde ocurra (service, repository) y un
 **handler global** (`app/Core/Http/ExceptionHandler.py`, ya montado por `create_app`) lo
-convierte en un sobre JSON único:
+convierte al sobre JSON **estándar de la industria**: [RFC 9457 *Problem Details*](https://www.rfc-editor.org/rfc/rfc9457)
+(`application/problem+json`).
 
 ```python
 from app.Core.Errors import ResourceNotFoundError, DomainError
 
 # En un service / repository (NO lo atrapes en el controller):
 raise ResourceNotFoundError("La compañía 7 no existe", details={"id": 7})
-# raise DomainError("Saldo insuficiente", error_code="insufficient_funds", status_code=402)
+# raise DomainError("Saldo insuficiente", error_code="insufficient_funds", status_code=402, title="Payment Required")
 ```
 
-Respuesta (status según el error; aquí `404`):
+Respuesta (status según el error; aquí `404`), `Content-Type: application/problem+json`:
 
 ```json
-{ "error_code": "resource_not_found", "message": "La compañía 7 no existe", "details": {"id": 7} }
+{
+  "type": "about:blank",
+  "title": "Resource not found",
+  "status": 404,
+  "detail": "La compañía 7 no existe",
+  "code": "resource_not_found",
+  "errors": { "id": 7 }
+}
 ```
 
+- Mapeo del `DomainError` a los campos RFC: `title` (resumen estable del tipo), `status`,
+  `detail` (= `message`, la ocurrencia), `code` (= `error_code`, **estable**, los clientes
+  ramifican en él) y `errors` (= `details`, opcional).
 - Subclases listas: `ResourceNotFoundError` (404), `ConflictError` (409),
   `UnauthorizedError` (401), `ForbiddenError` (403). O `DomainError` directo con
-  `error_code`/`status_code` a mano.
-- `error_code` es **estable** (los clientes ramifican en él); `message` es legible;
-  `details` es opcional.
-- Cualquier excepción **no prevista** (un bug, infra caída) cae en el catch-all: el cliente
-  recibe un `500` genérico `{"error_code": "internal_error", ...}` y el **traceback completo
-  va al log** — nunca se filtran internals en la respuesta.
-- Es **aditivo**: los `HTTPException` de FastAPI (p. ej. el `401` de `require_api_key`) y el
-  `422` de validación de Pydantic siguen igual, con su `{"detail": ...}`.
+  `error_code`/`status_code`/`title` a mano.
+- **`type`**: `about:blank` por default (RFC-correcto). Si publicas docs de errores, pon
+  `PROBLEM_BASE_URL` en `.env` y el `type` apuntará a `<base>/<code>`.
+- **Una sola forma para TODO**: la validación `422` de Pydantic sale igual
+  (`code: "validation_error"`, con `errors: {campo: [mensajes]}`), los `HTTPException`
+  (auth/404/405…) también, y cualquier excepción **no prevista** cae en el catch-all →
+  `500` genérico (`code: "internal_error"`) con el **traceback completo al log** y **sin
+  filtrar internals** en la respuesta.
 
 ## El endpoint `/status`
 

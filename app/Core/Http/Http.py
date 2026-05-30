@@ -70,8 +70,8 @@ def create_app() -> FastAPI:
     # Stack base de middlewares (CORS/TrustedHost/GZip) según Settings.
     register_middlewares(app)
 
-    # Handlers globales: DomainError → JSON {error_code,message,details}; catch-all → 500
-    # genérico + log. Aditivo: no toca los HTTPException de FastAPI.
+    # Handlers globales: TODOS los errores (dominio, validación 422, HTTPException, 500)
+    # salen en RFC 9457 (application/problem+json), una sola forma para el cliente.
     register_exception_handlers(app)
 
     # Auto-montaje: cada APIRouter descubierto en Modules/<X>/Http/ se incluye.

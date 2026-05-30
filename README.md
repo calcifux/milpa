@@ -153,8 +153,7 @@ uv run python jornal list             # ve todos los comandos disponibles
 ```
 
 `serve` arranca uvicorn con la app factory del kernel (`app.Core.Http.Http:create_app`);
-por default escucha en `127.0.0.1:$APP_PORT` con `--reload`. Para un arranque
-daemonizado (PID + logs), usa `./start.sh` / `./stop.sh`.
+por default escucha en `127.0.0.1:$APP_PORT` con `--reload`.
 
 > **Beat: una sola instancia** (≈ `onOneServer()` de Laravel). Varios beats = crons
 > duplicados. Los crons se declaran con `@cron_task(...)` (`app/Core/Cron`): gate por

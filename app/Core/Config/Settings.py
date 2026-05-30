@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     # CSP: vacío => no se manda (es ESPECÍFICO de cada app; un CSP malo rompe la página).
     content_security_policy: str = ""
 
+    # --- Errores (RFC 9457 Problem Details) ---
+    # Base del campo `type` de los errores. Vacío => "about:blank" (default RFC-correcto).
+    # Si publicas docs de errores, apúntalo ahí: "https://tudominio.com/problems".
+    problem_base_url: str = ""
+
     # --- Correo (fallback de destinatarios cuando system_config no tiene el name) ---
     admin_system_mails: str = ""  # coma-separado; = config('constants.admin_system_mails')
     mail_cco_recipient: str = ""  # = config('constants.mail_cco_recipient')
