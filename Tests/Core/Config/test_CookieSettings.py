@@ -23,6 +23,8 @@ def test_cookie_prefix_override_derives_both() -> None:
 
 
 def test_explicit_cookie_names_win_over_prefix() -> None:
-    s = Settings(_env_file=None, database_url="sqlite://", cookie_prefix="acme", session_cookie="sess", csrf_cookie="tok")
+    s = Settings(
+        _env_file=None, database_url="sqlite://", cookie_prefix="acme", session_cookie="sess", csrf_cookie="tok"
+    )
     assert s.session_cookie == "sess"
     assert s.csrf_cookie == "tok"

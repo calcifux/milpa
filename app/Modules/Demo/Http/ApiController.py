@@ -11,10 +11,12 @@ from typing import Any, cast
 
 from fastapi import Depends
 from pydantic import BaseModel
+from sqlalchemy import and_, or_
 
 from app.Core.Auth import Auth, Authenticatable, guarded, require_roles
 from app.Core.Errors import UnauthorizedError
 from app.Core.Http import Controller, Delete, Get, Post, Put
+from app.Models.Note import Note
 from app.Models.User import User
 from app.Modules.Demo.Policies import register_policies
 from app.Modules.Demo.Repositories.NoteRepository import NoteRepository
@@ -28,6 +30,8 @@ register_policies()  # registra las abilities ABAC (note.update / note.delete)
 # Guards explícitos: este carril es SIEMPRE JWT (la app sirve los dos carriles a la vez).
 _JwtUser = Depends(guarded("jwt"))
 _AdminJwt = Depends(require_roles("admin", guard="jwt"))
+
+_API_PER_PAGE = 20
 
 
 class RegisterInput(BaseModel):
@@ -64,8 +68,12 @@ class ApiController:
         return user_dict(cast("User", user))
 
     @Get("/notes")
-    def list_notes(self, user: Authenticatable = _JwtUser) -> list[dict[str, Any]]:
-        return [note_dict(note) for note in NoteRepository().for_owner(user.get_auth_identifier())]
+    def list_notes(self, user: Authenticatable = _JwtUser, offset: int = 0, q: str = "") -> dict[str, Any]:
+        where = Note.owner_id == user.get_auth_identifier()
+        if q:
+            where = and_(where, Note.title.ilike(f"%{q}%"))
+        page = NoteRepository().paginate(offset=offset, limit=_API_PER_PAGE, order_by=Note.id.desc(), where=where)
+        return {"items": [note_dict(n) for n in page.items], "has_more": page.has_more, "next_offset": page.next_offset}
 
     @Post("/notes", status_code=201)
     def create_note(self, body: NoteInput, user: Authenticatable = _JwtUser) -> dict[str, Any]:
@@ -80,5 +88,10 @@ class ApiController:
         NoteService().delete(note_id, actor=user)
 
     @Get("/admin/users")
-    def admin_users(self, user: Authenticatable = _AdminJwt) -> list[dict[str, Any]]:
-        return [user_dict(person) for person in UserRepository().all()]
+    def admin_users(self, user: Authenticatable = _AdminJwt, offset: int = 0, q: str = "") -> dict[str, Any]:
+        where = None
+        if q:
+            pattern = f"%{q}%"
+            where = or_(User.name.ilike(pattern), User.email.ilike(pattern))
+        page = UserRepository().paginate(offset=offset, limit=_API_PER_PAGE, order_by=User.id.asc(), where=where)
+        return {"items": [user_dict(u) for u in page.items], "has_more": page.has_more, "next_offset": page.next_offset}

@@ -42,6 +42,7 @@
         <ul><li><small class="brand-sub">demo</small></li></ul>
         <ul>
           {% if user %}
+            <li><a href="/dashboard">Panel</a></li>
             <li><a href="/notes">Mis notas</a></li>
             {% if "admin" in user.get_roles() %}<li><a href="/admin/users">Usuarios</a></li>{% endif %}
             <li><small>{{ user.name or user.email }}</small></li>
