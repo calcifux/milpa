@@ -3,7 +3,9 @@ de verdad de secretos/config por-entorno; infraestructura va SIN default
 (obligatoria) para fallar claro si falta.
 """
 
-from pydantic import AliasChoices, Field
+from typing import Self
+
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Default local para lo ENCOLADO (broker y lock) cuando no se configura nada. Es solo
@@ -136,18 +138,33 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_ttl_seconds: int = 3600  # vigencia del JWT (1 h)
 
+    # --- Cookies ---
+    # Prefijo de TODAS las cookies de la app (sesión, CSRF). Si los nombres de abajo se
+    # dejan vacíos, se derivan como "<cookie_prefix>_session" / "<cookie_prefix>_csrf".
+    # Default: "milpa".
+    cookie_prefix: str = "milpa"
+
     # --- Auth: sesión cookie (carril browser/HTMX, estilo Sanctum) ---
     # Firma la cookie de sesión (Starlette SessionMiddleware). Vacío => no se monta la sesión.
     session_secret: str = ""
-    session_cookie: str = "milpa_session"
+    session_cookie: str = ""  # vacío => "<cookie_prefix>_session"
     session_ttl_seconds: int = 1209600  # 14 días
     session_secure: bool = False  # True en PROD (HTTPS): cookie con flag Secure. HttpOnly siempre on.
     session_same_site: str = "lax"  # lax | strict | none
 
     # --- CSRF (double-submit cookie; protege el carril cookie/sesión, exime bearer/JWT) ---
     csrf_enabled: bool = True
-    csrf_cookie: str = "milpa_csrf"  # NO HttpOnly: el front/HTMX lo lee y lo reenvía en el header
+    csrf_cookie: str = ""  # vacío => "<cookie_prefix>_csrf". NO HttpOnly (el front lo lee y reenvía)
     csrf_header: str = "X-CSRF-Token"
+
+    @model_validator(mode="after")
+    def _derive_cookie_names(self) -> Self:
+        """Deriva los nombres de cookies del prefijo cuando no se fijaron explícitos."""
+        if not self.session_cookie:
+            self.session_cookie = f"{self.cookie_prefix}_session"
+        if not self.csrf_cookie:
+            self.csrf_cookie = f"{self.cookie_prefix}_csrf"
+        return self
 
     # --- Auth: llave pública de Passport (RS256, tokens EXTERNOS de Laravel) ---
     passport_public_key: str | None = None

@@ -16,6 +16,11 @@ jobs:
   quality:
     name: Lint + Types + Imports + Tests
     runs-on: ubuntu-latest
+    # `settings = Settings()` corre al importar y exige DATABASE_URL (sin default). En CI no
+    # hay .env, así que damos un sqlite dummy: basta para importar (el engine es perezoso) y
+    # los tests son sin BD. Igual lo necesitan lint-imports y pytest (importan app.*).
+    env:
+      DATABASE_URL: "sqlite://"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

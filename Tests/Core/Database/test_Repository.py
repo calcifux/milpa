@@ -35,8 +35,9 @@ class _WidgetRepository(Repository[_Widget, int]):
 
 
 class _FakeResult:
-    def __init__(self, first: Any) -> None:
+    def __init__(self, first: Any = None, rows: Any = None) -> None:
         self._first = first
+        self._rows = rows if rows is not None else []
 
     def scalars(self) -> _FakeResult:
         return self
@@ -44,13 +45,17 @@ class _FakeResult:
     def first(self) -> Any:
         return self._first
 
+    def all(self) -> Any:
+        return self._rows
+
 
 class _FakeSession:
     """Sesión fake: get() / execute() devuelven lo configurado; registra add()/flush()."""
 
-    def __init__(self, *, get_result: Any = None, first_result: Any = None) -> None:
+    def __init__(self, *, get_result: Any = None, first_result: Any = None, all_result: Any = None) -> None:
         self._get_result = get_result
         self._first_result = first_result
+        self._all_result = all_result if all_result is not None else []
         self.added: list[Any] = []
         self.flushed = 0
 
@@ -63,9 +68,9 @@ class _FakeSession:
     def get(self, _model: Any, _entity_id: Any) -> Any:
         return self._get_result
 
-    # first_or_create:
+    # first_or_create / paginate:
     def execute(self, _statement: Any) -> _FakeResult:
-        return _FakeResult(self._first_result)
+        return _FakeResult(first=self._first_result, rows=self._all_result)
 
     def add(self, entity: Any) -> None:
         self.added.append(entity)
@@ -121,3 +126,26 @@ def test_first_or_create_creates_with_where_plus_values_when_missing(monkeypatch
     assert result.color == "red"
     assert session.added == [result]
     assert session.flushed == 1
+
+
+def test_paginate_reports_has_more_and_trims_to_limit(monkeypatch: MonkeyPatch) -> None:
+    # paginate pide limit+1; simulamos que la BD devolvió 3 con limit=2 => hay más.
+    rows = [_Widget(id=1), _Widget(id=2), _Widget(id=3)]
+    _install(monkeypatch, _FakeSession(all_result=rows))
+
+    page = _WidgetRepository().paginate(offset=0, limit=2, order_by=_Widget.id.desc())
+
+    assert len(page.items) == 2  # recortado a limit
+    assert page.has_more is True
+    assert page.next_offset == 2
+
+
+def test_paginate_last_page_has_no_more(monkeypatch: MonkeyPatch) -> None:
+    rows = [_Widget(id=5), _Widget(id=6)]  # <= limit => última página
+    _install(monkeypatch, _FakeSession(all_result=rows))
+
+    page = _WidgetRepository().paginate(offset=4, limit=2, order_by=_Widget.id.desc())
+
+    assert len(page.items) == 2
+    assert page.has_more is False
+    assert page.next_offset == 6

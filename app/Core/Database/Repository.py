@@ -25,6 +25,7 @@ queries custom llevan cuerpo, pero usan `self.session`.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from types import FunctionType
 from typing import Any
 
@@ -33,6 +34,19 @@ from sqlalchemy.orm import Session
 
 from app.Core.Database.Transactional import auto_session, current_session, transactional
 from app.Core.Errors import ResourceNotFoundError
+
+
+@dataclass(frozen=True)
+class Page[T]:
+    """Una página de resultados para paginación / scroll infinito (SIN COUNT total).
+
+    `has_more` se deduce pidiendo `limit + 1` filas (más barato que un `COUNT(*)`), y `next_offset`
+    es el offset de la siguiente página — úsalo en el marcador HTMX (`?offset=...`).
+    """
+
+    items: Sequence[T]
+    has_more: bool
+    next_offset: int
 
 
 class Repository[ModelT, IdT]:
@@ -66,6 +80,19 @@ class Repository[ModelT, IdT]:
     @auto_session
     def all(self) -> Sequence[ModelT]:
         return self.session.execute(select(self.model)).scalars().all()
+
+    @auto_session
+    def paginate(self, *, offset: int = 0, limit: int = 20, order_by: Any = None, where: Any = None) -> Page[ModelT]:
+        """Página por `offset`/`limit` (estilo scroll infinito). Pasa `order_by` para orden
+        ESTABLE (p. ej. `Model.id.desc()`) y `where` como condición opcional. No hace COUNT:
+        pide `limit + 1` filas y deduce `has_more`."""
+        statement = select(self.model)
+        if where is not None:
+            statement = statement.where(where)
+        if order_by is not None:
+            statement = statement.order_by(order_by)
+        rows = list(self.session.execute(statement.offset(offset).limit(limit + 1)).scalars().all())
+        return Page(items=rows[:limit], has_more=len(rows) > limit, next_offset=offset + limit)
 
     @transactional
     def add(self, entity: ModelT) -> ModelT:
