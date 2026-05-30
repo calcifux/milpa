@@ -56,16 +56,28 @@ class InvoiceRepository(Repository[Invoice, int]):
 | Método | Firma | Decorador |
 |--------|-------|-----------|
 | `get` | `get(entity_id: IdT) -> ModelT \| None` | `@auto_session` |
+| `find_or_fail` | `find_or_fail(entity_id: IdT) -> ModelT` (lanza `ResourceNotFoundError` si no existe) | `@auto_session` |
 | `all` | `all() -> Sequence[ModelT]` | `@auto_session` |
 | `add` | `add(entity: ModelT) -> ModelT` (hace `flush()` para asignar PK) | `@transactional` |
+| `first_or_create` | `first_or_create(where: dict, values: dict \| None = None) -> ModelT` | `@transactional` |
 | `delete` | `delete(entity: ModelT) -> None` (lógico si hereda `SoftDeleteMixin`) | `@transactional` |
 
 ```python
 repo = InvoiceRepository()
-inv = repo.get(7)                 # abre sesión efímera si no hay scope
+inv = repo.get(7)                 # abre sesión efímera si no hay scope; None si no existe
+inv = repo.find_or_fail(7)        # = findOrFail de Eloquent: 404 (ResourceNotFoundError) si falta
 todas = repo.all()                # filtra borradas lógicas (SoftDeleteMixin)
 inv2 = repo.find_by_numero("INV-001")
+
+# firstOrCreate: busca por `where`; si no hay, crea con where + values (extras solo-al-crear)
+cliente = ClienteRepository().first_or_create({"rfc": "XAXX010101000"}, {"nombre": "Público"})
 ```
+
+- **`find_or_fail`** evita el `if x is None: raise` repetido en cada service: el handler
+  global convierte `ResourceNotFoundError` en un `404 {error_code, message, details}`.
+- **`first_or_create`** es idempotente por `where`: devuelve el existente o crea uno nuevo
+  (con su PK ya asignada vía `flush`). Como es `@transactional`, persiste o se une a la tx
+  externa.
 
 > Limitación honesta: no derivamos queries del **nombre** del método (el `findByX` de
 > Spring). En Python sería frágil. Las queries custom llevan cuerpo explícito.

@@ -32,6 +32,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.Core.Database.Transactional import auto_session, current_session, transactional
+from app.Core.Errors import ResourceNotFoundError
 
 
 class Repository[ModelT, IdT]:
@@ -50,6 +51,19 @@ class Repository[ModelT, IdT]:
         return self.session.get(self.model, entity_id)
 
     @auto_session
+    def find_or_fail(self, entity_id: IdT) -> ModelT:
+        """Como `get`, pero NUNCA devuelve None: si no existe, lanza `ResourceNotFoundError`
+        (= `findOrFail` de Eloquent / `getReferenceById` que falla en Spring Data). El
+        handler global la traduce a un 404 JSON; el service no tiene que checar None a mano."""
+        entity = self.session.get(self.model, entity_id)
+        if entity is None:
+            raise ResourceNotFoundError(
+                f"{self.model.__name__} con id {entity_id!r} no existe",
+                details={"model": self.model.__name__, "id": str(entity_id)},
+            )
+        return entity
+
+    @auto_session
     def all(self) -> Sequence[ModelT]:
         return self.session.execute(select(self.model)).scalars().all()
 
@@ -62,6 +76,20 @@ class Repository[ModelT, IdT]:
     @transactional
     def delete(self, entity: ModelT) -> None:
         self.session.delete(entity)
+
+    @transactional
+    def first_or_create(self, where: dict[str, Any], values: dict[str, Any] | None = None) -> ModelT:
+        """Busca la PRIMERA fila que cumpla `where`; si no hay, la CREA con `where + values`
+        (= `firstOrCreate` de Eloquent). `where` son las columnas de búsqueda/identidad;
+        `values` son extras solo-al-crear. Es @transactional: si crea, persiste (o se une a
+        la tx de afuera). Devuelve la entidad existente o la recién creada (con su PK)."""
+        existing = self.session.execute(select(self.model).filter_by(**where)).scalars().first()
+        if existing is not None:
+            return existing
+        entity = self.model(**{**where, **(values or {})})
+        self.session.add(entity)
+        self.session.flush()  # asigna PK/defaults sin esperar al commit
+        return entity
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
