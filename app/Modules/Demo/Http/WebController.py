@@ -12,10 +12,11 @@ Búsqueda + scroll comparten un endpoint de partial por lista: `append_only = of
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import cast
 
 from fastapi import Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from sqlalchemy import and_, or_
 
 from app.Core.Auth import Auth, set_current_user
@@ -36,6 +37,10 @@ register_policies()
 
 NOTES_PER_PAGE = 6
 USERS_PER_PAGE = 12
+
+# Favicon para servirlo también en la RAÍZ (/favicon.ico), que es lo que el navegador pide por
+# default para el ícono de la pestaña (además del <link rel="icon"> del layout).
+_FAVICON = Path(__file__).resolve().parents[1] / "Resources" / "Static" / "favicon.ico"
 
 
 def _web_user(request: Request) -> User | None:
@@ -92,6 +97,10 @@ class WebController:
     @Get("/")
     def home(self, request: Request) -> Response:
         return RedirectResponse("/dashboard" if _web_user(request) else "/login", status_code=303)
+
+    @Get("/favicon.ico", include_in_schema=False)
+    def favicon(self) -> FileResponse:
+        return FileResponse(_FAVICON)
 
     @Get("/login")
     def login_form(self, request: Request) -> HTMLResponse:
