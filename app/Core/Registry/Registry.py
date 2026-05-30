@@ -127,6 +127,13 @@ def iter_routers() -> Iterator[APIRouter]:
                 if isinstance(value, APIRouter) and id(value) not in seen:
                     seen.add(id(value))
                     yield value
+                # Controllers class-based (@Controller): el router armado vive en el __dict__
+                # de la CLASE (no heredado), igual de descubrible que un APIRouter de módulo.
+                elif isinstance(value, type):
+                    controller_router = value.__dict__.get("__milpa_router__")
+                    if isinstance(controller_router, APIRouter) and id(controller_router) not in seen:
+                        seen.add(id(controller_router))
+                        yield controller_router
 
 
 def iter_static_mounts() -> Iterator[tuple[str, str]]:

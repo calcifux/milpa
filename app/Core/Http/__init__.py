@@ -4,5 +4,6 @@ los entrypoints (p. ej. `jornal serve`) la levanten con
 """
 
 from app.Core.Http.Http import create_app
+from app.Core.Http.Routing import Controller, Delete, Get, Patch, Post, Put
 
-__all__ = ["create_app"]
+__all__ = ["Controller", "Delete", "Get", "Patch", "Post", "Put", "create_app"]
