@@ -1,5 +1,6 @@
 # milpa
 
+[![CI](https://github.com/calcifux/milpa/actions/workflows/ci.yml/badge.svg)](https://github.com/calcifux/milpa/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.14+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Celery](https://img.shields.io/badge/Celery-37814A?logo=celery&logoColor=white)
