@@ -14,6 +14,10 @@ secrets/*
 logs/*
 !logs/.gitkeep
 
+# BD sqlite local (p. ej. la del demo: DATABASE_URL=sqlite:///milpa.db)
+*.db
+*.sqlite3
+
 # Runtime: PID del servidor web (lo escribe start.sh, lo lee stop.sh)
 app.pid
 
