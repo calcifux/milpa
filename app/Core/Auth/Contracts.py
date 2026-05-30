@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -35,9 +35,12 @@ class AuthenticatableMixin:
     concreto las declara como `Mapped[...]`; aquí solo van los métodos del contrato.
     """
 
-    id: Any
-    password: Any
-    roles: Any
+    # Solo para el type-checker: el modelo concreto declara estas columnas como Mapped[...].
+    # En runtime NO existen aquí, para que el mapper de SQLAlchemy no las vea en el mixin.
+    if TYPE_CHECKING:
+        id: Any
+        password: Any
+        roles: Any
 
     def get_auth_identifier(self) -> Any:
         return self.id

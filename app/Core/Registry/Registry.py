@@ -78,6 +78,13 @@ def import_all_tasks() -> None:
         import_submodules(f"{package}.Console.Commands")
 
 
+def import_all_seeders() -> None:
+    """Importa Seeders/ de cada módulo para que sus subclases de `Seeder` se registren
+    (las descubre `db:seed`). Mismo discovery por convención que tasks/commands."""
+    for package in module_packages():
+        import_submodules(f"{package}.Seeders")
+
+
 def collect_beat_schedule() -> dict[str, object]:
     """Fusiona los beat_schedule declarados en cada Console/Kernel.py.
 

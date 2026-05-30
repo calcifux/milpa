@@ -8,6 +8,7 @@ entrypoints (`app/Core/Http`,
 from app.Core.Registry.Registry import (
     collect_beat_schedule,
     import_all_models,
+    import_all_seeders,
     import_all_tasks,
     iter_cli_apps,
     iter_routers,
@@ -18,6 +19,7 @@ from app.Core.Registry.Registry import (
 __all__ = [
     "collect_beat_schedule",
     "import_all_models",
+    "import_all_seeders",
     "import_all_tasks",
     "iter_cli_apps",
     "iter_routers",

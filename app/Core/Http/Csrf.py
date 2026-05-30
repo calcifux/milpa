@@ -5,9 +5,11 @@ reenvía en un header (`csrf_header`). En cada método NO-seguro (POST/PUT/PATCH
 middleware exige que header == cookie. Como el SOP impide que otro origen LEA la cookie o ponga
 ese header custom cross-origin, el match prueba mismo-origen. Va de la mano con `SameSite=Lax`.
 
-Solo aplica al carril **cookie/sesión**: las requests con `Authorization: Bearer` (API/JWT) se
-EXIMEN — no hay cookie ambiente que un atacante pueda explotar. La respuesta de rechazo es un
-403 `application/problem+json` (igual que el resto de errores), emitida directo desde el ASGI.
+CSRF SOLO aplica al carril **cookie/sesión** (modelo Sanctum): la verificación corre únicamente
+cuando la request trae la **cookie de sesión** (la credencial ambiente que un atacante podría
+explotar). Quedan EXENTAS: las requests con `Authorization: Bearer` (API/JWT) y las que NO traen
+sesión (clientes API por JSON, y el propio login/registro, que aún no tienen sesión). El rechazo
+es un 403 `application/problem+json` emitido directo desde el ASGI.
 """
 
 from __future__ import annotations
@@ -85,9 +87,10 @@ class CsrfMiddleware:
         headers = Headers(scope=scope)
         method: str = scope["method"]
         cookie_token = _cookie_value(headers, settings.csrf_cookie)
+        has_session = _cookie_value(headers, settings.session_cookie) is not None
 
-        # Verificación: métodos no-seguros con cookie. Bearer/JWT exento.
-        if method not in _SAFE_METHODS and not _has_bearer(headers):
+        # Verifica SOLO si hay sesión-cookie (credencial ambiente). Bearer y sin-sesión exentos.
+        if method not in _SAFE_METHODS and has_session and not _has_bearer(headers):
             header_token = headers.get(settings.csrf_header)
             if not cookie_token or not header_token or not compare_digest(cookie_token, header_token):
                 await _send_csrf_forbidden(send)
