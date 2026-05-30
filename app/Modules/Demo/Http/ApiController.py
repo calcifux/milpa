@@ -11,11 +11,9 @@ from typing import Any, cast
 
 from fastapi import Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 
-from app.Core.Auth import Auth, Authenticatable, Hash, guarded, require_roles
-from app.Core.Database import current_session, transactional
-from app.Core.Errors import ConflictError, UnauthorizedError
+from app.Core.Auth import Auth, Authenticatable, guarded, require_roles
+from app.Core.Errors import UnauthorizedError
 from app.Core.Http import Controller, Delete, Get, Post, Put
 from app.Models.User import User
 from app.Modules.Demo.Policies import register_policies
@@ -23,6 +21,7 @@ from app.Modules.Demo.Repositories.NoteRepository import NoteRepository
 from app.Modules.Demo.Repositories.UserRepository import UserRepository
 from app.Modules.Demo.Serializers import note_dict, user_dict
 from app.Modules.Demo.Services.NoteService import NoteService
+from app.Modules.Demo.Services.UserService import UserService
 
 register_policies()  # registra las abilities ABAC (note.update / note.delete)
 
@@ -47,21 +46,11 @@ class NoteInput(BaseModel):
     body: str = ""
 
 
-@transactional
-def _create_user(name: str, email: str, password: str) -> dict[str, Any]:
-    if current_session().execute(select(User).where(User.email == email)).scalars().first() is not None:
-        raise ConflictError("El email ya está registrado.", details={"email": email})
-    user = User(name=name, email=email, password=Hash.make(password), roles="")
-    current_session().add(user)
-    current_session().flush()
-    return user_dict(user)
-
-
 @Controller("/api", tags=["demo-api"])
 class ApiController:
     @Post("/register", status_code=201)
     def register(self, body: RegisterInput) -> dict[str, Any]:
-        return _create_user(body.name, body.email, body.password)
+        return UserService().register(body.name, body.email, body.password)
 
     @Post("/login")
     def login(self, body: LoginInput) -> dict[str, str]:

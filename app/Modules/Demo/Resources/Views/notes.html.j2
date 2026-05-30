@@ -1,0 +1,14 @@
+{% extends "demo/layout.html.j2" %}
+{% block content %}
+<h2>Mis notas</h2>
+<article>
+  <form hx-post="/notes" hx-target="#notes-list" hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) this.reset()">
+    <input type="text" name="title" placeholder="Título" required />
+    <textarea name="body" placeholder="Contenido…"></textarea>
+    <button type="submit">Agregar nota</button>
+  </form>
+</article>
+<div id="notes-list">
+  {% include "demo/_notes.html.j2" %}
+</div>
+{% endblock %}

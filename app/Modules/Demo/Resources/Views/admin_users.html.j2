@@ -1,0 +1,20 @@
+{% extends "demo/layout.html.j2" %}
+{% block content %}
+<hgroup>
+  <h2>Usuarios</h2>
+  <p>Solo visible para el rol <code>admin</code> (RBAC).</p>
+</hgroup>
+<table>
+  <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Roles</th></tr></thead>
+  <tbody>
+    {% for person in users %}
+    <tr>
+      <td>{{ person.id }}</td>
+      <td>{{ person.name or "—" }}</td>
+      <td>{{ person.email }}</td>
+      <td>{{ person.get_roles() | join(", ") or "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
