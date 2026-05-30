@@ -13,6 +13,7 @@ from app.Core.Auth.Auth import (
     optional_user,
     set_current_user,
 )
+from app.Core.Auth.Authorization import Can, Gate, Roles, require_roles
 from app.Core.Auth.Contracts import Authenticatable, AuthenticatableMixin, UserProvider
 from app.Core.Auth.Guards import JwtGuard, PassportGuard, SessionGuard, get_guard
 from app.Core.Auth.Hash import Hash
@@ -23,11 +24,14 @@ __all__ = [
     "Auth",
     "Authenticatable",
     "AuthenticatableMixin",
+    "Can",
     "CurrentUser",
+    "Gate",
     "Hash",
     "JwtGuard",
     "OptionalUser",
     "PassportGuard",
+    "Roles",
     "SessionGuard",
     "SqlAlchemyUserProvider",
     "TokenPrincipal",
@@ -38,6 +42,7 @@ __all__ = [
     "get_user_provider",
     "guarded",
     "optional_user",
+    "require_roles",
     "require_scopes",
     "set_current_user",
     "set_user_provider",
