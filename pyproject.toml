@@ -43,6 +43,7 @@ mssql = ["pyodbc>=5.2"]              # SQL Server (requiere el ODBC Driver del S
 
 [dependency-groups]
 dev = [
+    "faker>=40.19.1",
     "import-linter>=2.11",
     "mypy>=2.1.0",
     "pytest>=9.0.3",
@@ -95,7 +96,7 @@ disallow_untyped_decorators = false
 
 # Librerías de terceros sin stubs de tipos.
 [[tool.mypy.overrides]]
-module = ["celery.*", "kombu.*", "sqlalchemy_easy_softdelete.*", "croniter.*", "tzlocal.*"]
+module = ["celery.*", "kombu.*", "sqlalchemy_easy_softdelete.*", "croniter.*", "tzlocal.*", "faker.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------

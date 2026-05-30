@@ -1,4 +1,5 @@
 from app.Core.Database.Base import Base
+from app.Core.Database.Factory import Factory
 from app.Core.Database.Repository import Page, Repository
 from app.Core.Database.Session import SessionLocal, engine
 from app.Core.Database.SoftDelete import SoftDeleteMixin
@@ -7,6 +8,7 @@ from app.Core.Database.Transactional import auto_session, current_session, sessi
 
 __all__ = [
     "Base",
+    "Factory",
     "Page",
     "Repository",
     "SessionLocal",

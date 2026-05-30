@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     # Locale de fallback de toda la app (i18n transversal: correos, API, etc.) cuando
     # no se pasa locale explícito. Override en .env con APP_FALLBACK_LOCALE.
     app_fallback_locale: str = "es"
+    # Locale de Faker para factories/seeders (datos falsos). Configurable: "es_MX", "es_ES",
+    # "en_US", … (cualquier locale de Faker). Lo usa app/Core/Database/Faker.
+    faker_locale: str = "es_MX"
     # Default = zona del HOST (no la imponemos). El dev/devops DEBE fijar TIMEZONE en .env.
     timezone: str = Field(default_factory=_host_timezone)
 
