@@ -85,6 +85,19 @@ class Settings(BaseSettings):
     gzip_enabled: bool = False
     gzip_min_size: int = 500
 
+    # --- HTTP / security headers (defensivos; defaults SEGUROS, todo apagable) ---
+    # Trío seguro (nosniff + X-Frame-Options + Referrer-Policy): ON por default (downside ~0).
+    security_headers_enabled: bool = True
+    security_frame_options: str = "DENY"  # DENY | SAMEORIGIN | "" (no mandar)
+    security_referrer_policy: str = "no-referrer"
+    # HSTS: fuerza HTTPS en el navegador. OFF por default (solo tiene sentido sirviendo
+    # HTTPS; encenderlo mal "encierra" al cliente en https). Actívalo en prod tras TLS.
+    hsts_enabled: bool = False
+    hsts_max_age: int = 31536000  # 1 año (segundos)
+    hsts_include_subdomains: bool = True
+    # CSP: vacío => no se manda (es ESPECÍFICO de cada app; un CSP malo rompe la página).
+    content_security_policy: str = ""
+
     # --- Correo (fallback de destinatarios cuando system_config no tiene el name) ---
     admin_system_mails: str = ""  # coma-separado; = config('constants.admin_system_mails')
     mail_cco_recipient: str = ""  # = config('constants.mail_cco_recipient')

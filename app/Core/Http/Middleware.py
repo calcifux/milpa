@@ -17,6 +17,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.Core.Config import settings
+from app.Core.Http.SecurityHeaders import SecurityHeadersMiddleware
 
 
 def _csv(value: str) -> list[str]:
@@ -24,10 +25,32 @@ def _csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _security_headers() -> dict[str, str]:
+    """Arma el set de security headers a inyectar, según Settings (defaults seguros)."""
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": settings.security_referrer_policy,
+    }
+    if settings.security_frame_options:
+        headers["X-Frame-Options"] = settings.security_frame_options
+    if settings.content_security_policy:
+        headers["Content-Security-Policy"] = settings.content_security_policy
+    if settings.hsts_enabled:
+        value = f"max-age={settings.hsts_max_age}"
+        if settings.hsts_include_subdomains:
+            value += "; includeSubDomains"
+        headers["Strict-Transport-Security"] = value
+    return headers
+
+
 def register_middlewares(app: FastAPI) -> None:
     """Agrega el stack base según Settings. Se agregan de ADENTRO hacia AFUERA:
-    GZip (interno) → TrustedHost → CORS (externo). Cada uno solo si aplica."""
-    # GZip: el más interno (comprime la respuesta ya formada).
+    SecurityHeaders (interno) → GZip → TrustedHost → CORS (externo). Cada uno solo si aplica."""
+    # SecurityHeaders: el más interno (ve la respuesta ya formada y le pega los headers).
+    if settings.security_headers_enabled:
+        app.add_middleware(SecurityHeadersMiddleware, headers=_security_headers())
+
+    # GZip: comprime la respuesta ya formada.
     if settings.gzip_enabled:
         app.add_middleware(GZipMiddleware, minimum_size=settings.gzip_min_size)
 

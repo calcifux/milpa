@@ -100,6 +100,7 @@ Variables clave (el `.env.example` trae todas, comentadas):
 | `MAIL_DRIVER` | `smtp` (real) · `log` (lo escribe en el log, dev sin SMTP) · `null` (no-op). |
 | `MAIL_*` | Host/puerto/credenciales/remitente del correo (en local apunta a Mailpit). |
 | `CORS_*` / `TRUSTED_HOSTS` / `GZIP_ENABLED` | Middlewares HTTP (defaults seguros si se omiten). |
+| `SECURITY_HEADERS_ENABLED` / `HSTS_*` / `CONTENT_SECURITY_POLICY` | Security headers defensivos (nosniff/X-Frame-Options/Referrer-Policy ON; HSTS/CSP opt-in). |
 | `PASSPORT_PUBLIC_KEY_PATH` | (Opcional) Llave pública para validar tokens OAuth2 de Laravel Passport (ver §4). |
 | `LOG_LEVEL` / `LOG_JSON` | Logging (Loguru). `LOG_JSON=true` agrega `logs/app.jsonl`. |
 
