@@ -1,0 +1,111 @@
+[project]
+name = "milpa"
+version = "0.1.0"
+description = "Microframework Python estilo Laravel/Spring (FastAPI + Celery + SQLAlchemy + Typer) para construir monolitos modulares y migrar apps legacy."
+authors = [{ name = "@Calcifux (Carlos Guillermo Reyes Ramiro)" }]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.14"
+dependencies = [
+    "celery[redis]>=5.6.3",
+    "croniter>=6.2.2",
+    "fastapi>=0.136.3",
+    "httpx>=0.28.1",
+    "i18nice[YAML]>=0.16",
+    "jinja2>=3.1.4",
+    "loguru>=0.7",
+    "pydantic-settings>=2.14.1",
+    "pyjwt[crypto]>=2.13.0",
+    "pymysql>=1.2.0",
+    "redis>=6.4.0",
+    "sqlalchemy>=2.0.50",
+    "sqlalchemy-easy-softdelete>=0.9.0",
+    "typer>=0.26.2",
+    "tzdata>=2026.2",
+    "tzlocal>=5.3.1",
+    "uvicorn>=0.48.0",
+]
+
+# Drivers de BD por motor (opcionales). El engine es agnostico del dialecto
+# (ver app/Core/Database/Session.py); aqui solo decides QUE driver instalar.
+# pymysql (MySQL/MariaDB) ya va en el core porque ESTE proyecto usa MySQL.
+# Otros proyectos instalan solo el suyo:  uv sync --extra postgres
+#                                         pip install ".[postgres]"
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2"]  # PostgreSQL (psycopg v3, binario: sin libpq-dev)
+oracle = ["oracledb>=2.5"]           # Oracle (reemplaza al viejo cx_Oracle)
+mssql = ["pyodbc>=5.2"]              # SQL Server (requiere el ODBC Driver del SO)
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.11",
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
+    "ruff>=0.15.14",
+]
+
+# ---------------------------------------------------------------------------
+# pytest: SOLO unit tests SIN BD (rápidos y gratis en CI; NADA de TestContainers
+# ni MariaDB levantada — sale caro en Bitbucket/GitHub). La carpeta Tests/ espeja
+# 1:1 la estructura de app/. importmode=importlib permite mismos nombres de archivo
+# (test_X.py) en distintas carpetas sin __init__.py.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["Tests"]
+pythonpath = ["."]
+addopts = "-q --import-mode=importlib"
+
+# ---------------------------------------------------------------------------
+# Ruff: lint + format (reemplaza black/isort/flake8). Guardrail #1.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]  # pycodestyle, pyflakes, isort, pyupgrade, bugbear
+# E501: el largo de línea lo maneja el formatter.
+# B008: Depends(...) en defaults es EL patrón idiomático de FastAPI, no un bug.
+ignore = ["E501", "B008"]
+
+# ---------------------------------------------------------------------------
+# MyPy estricto: sin type hints completos, el PR no pasa. Guardrail #2.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.14"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["\\.venv"]
+# Alcance del gate: el CÓDIGO que se despliega (app/) + NUESTROS tests del framework
+# (Tests/Core). Los tests de cada módulo/proyecto (Tests/Modules y demás) quedan
+# LIBRES: cada dev elige sus herramientas de test y no pelea con strict en sus mocks;
+# pytest es su red. Si un proyecto quiere tipar sus tests, corre `mypy Tests/` aparte.
+files = ["app", "Tests/Core"]
+# Celery no envía type stubs: sus decoradores (@task) son "untyped". Relajamos
+# SOLO este sub-flag de strict para no tener que ignorar cada tarea a mano.
+disallow_untyped_decorators = false
+
+# Librerías de terceros sin stubs de tipos.
+[[tool.mypy.overrides]]
+module = ["celery.*", "kombu.*", "sqlalchemy_easy_softdelete.*", "croniter.*", "tzlocal.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# import-linter: frontera FORZADA entre módulos (que no se pisen en PRs).
+# Guardrail #3.  CLI: uv run lint-imports
+# ---------------------------------------------------------------------------
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "El shared kernel (Core/Models/Dictionaries) NO depende de los módulos"
+type = "forbidden"
+source_modules = ["app.Core", "app.Models", "app.Dictionaries"]
+forbidden_modules = ["app.Modules"]
+
+[[tool.importlinter.contracts]]
+name = "Los módulos son independientes entre sí (no se importan unos a otros)"
+type = "independence"
+# Wildcard: cubre TODOS los módulos presentes (CFDI, Example, CSD futuro…) sin
+# listarlos a mano. Agregar un módulo = cero edición aquí.
+modules = ["app.Modules.*"]

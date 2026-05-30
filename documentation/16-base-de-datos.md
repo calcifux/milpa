@@ -1,0 +1,75 @@
+# Base de datos: configuración del motor
+
+La capa de datos de milpa es **agnóstica del motor SQL**. Eliges la base con
+`DATABASE_URL` y el resto del código no cambia. Detrás está SQLAlchemy 2.0, con todo lo
+específico de cada dialecto **aislado** en `app/Core/Database/Session.py`.
+
+## Elegir el motor: `DATABASE_URL`
+
+El prefijo de la URL determina el dialecto (y el driver):
+
+```
+mysql+pymysql://user:pass@host:3306/db          # MySQL / MariaDB (driver en el core)
+postgresql+psycopg://user:pass@host:5432/db     # PostgreSQL   (uv sync --extra postgres)
+oracle+oracledb://user:pass@host:1521/?service_name=db   # Oracle (--extra oracle)
+mssql+pyodbc://user:pass@host/db?driver=ODBC+Driver+18   # SQL Server (--extra mssql)
+sqlite:///app.db                                # SQLite (dev/tests)
+```
+
+milpa detecta el backend automáticamente (`make_url(...).get_backend_name()`). No hay
+nada hardcodeado: cambiar de motor es cambiar la URL (y, si aplica, instalar su driver —
+ver [Instalación](02-instalacion.md)).
+
+## El engine y el pool
+
+`Session.py` construye el `engine` con kwargs que difieren **por motor**:
+
+- **SQLite**: `check_same_thread=False` (la conexión cruza hilos en FastAPI/workers); si
+  es en memoria, `StaticPool` (una sola conexión compartida).
+- **Cliente-servidor** (MySQL/PostgreSQL/Oracle/MSSQL): `pool_pre_ping=True` (verifica la
+  conexión antes de usarla) y `pool_recycle=3600` (recicla cada hora; los servidores
+  cierran conexiones longevas).
+
+## Zona horaria por conexión
+
+Cada vez que se abre una conexión, milpa fija su zona horaria a la de la app
+(`TIMEZONE`), vía un event hook `connect`. Así `NOW()` / `func.now()` (los timestamps
+automáticos) salen en hora local **sin** que Python intervenga. La sentencia depende del
+motor:
+
+| Motor | Sentencia | Nota |
+|-------|-----------|------|
+| MySQL/MariaDB | `SET time_zone = '-06:00'` | offset (los nombres IANA exigen cargar tz tables) |
+| PostgreSQL | `SET TIME ZONE 'America/Mexico_City'` | nombre IANA (Postgres trae las zonas) |
+| Oracle | `ALTER SESSION SET TIME_ZONE = '-06:00'` | offset vía ALTER |
+| SQLite / SQL Server | (sin zona por sesión) | en SQLite los timestamps caen a UTC; afecta solo dev/tests |
+
+Por eso conviene **fijar `TIMEZONE`** explícito en el `.env` de un servidor (suele estar
+en UTC). Ver [Configuración](03-configuracion.md).
+
+## `SessionLocal`
+
+```python
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+```
+
+`autocommit=False` (el commit es explícito, lo gobierna `@transactional`/`session_scope`)
+y `autoflush=False` (flush explícito, más predecible). No la usas directo: la capa
+transaccional la envuelve (ver [Repositorios y transacciones](18-repositorios-y-transacciones.md)).
+
+## ¿Crear tablas?
+
+`AUTO_CREATE_TABLES` (default `false`). Si es `true`, el lifespan crea las tablas al
+arrancar. **Contra una BD legacy compartida, déjalo en `false`**: milpa no debe crear ni
+alterar el esquema. Para esquemas nuevos, gestiona las migraciones con Alembic (la
+`Base` ya trae una `naming_convention` estable para migraciones reproducibles).
+
+## ¿Y NoSQL?
+
+Hoy la capa cubre **SQL**. NoSQL (Mongo, etc.) está **diferido on-demand**: cuando se
+necesite, se implementa detrás del mismo patrón `Repository`. No hay un adapter NoSQL
+especulativo.
+
+## Siguiente paso
+
+[Modelos](17-modelos.md).
