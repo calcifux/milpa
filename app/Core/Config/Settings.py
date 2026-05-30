@@ -128,7 +128,15 @@ class Settings(BaseSettings):
     # Compartimos BD con esquema legacy: NUNCA crear/alterar tablas solos.
     auto_create_tables: bool = False
 
-    # --- Auth: llave pública de Passport (RS256) ---
+    # --- Auth propia (login de milpa: JWT + sesión; ver app/Core/Auth) ---
+    auth_guard: str = "jwt"  # guard por default: jwt | session | passport
+    # Modelo Authenticatable que usa el SqlAlchemyUserProvider (ruta dotted). Lo genera el demo.
+    auth_user_model: str = "app.Models.User.User"
+    jwt_secret: str = ""  # HS256: OBLIGATORIO para emitir/validar los JWT propios
+    jwt_algorithm: str = "HS256"
+    jwt_ttl_seconds: int = 3600  # vigencia del JWT (1 h)
+
+    # --- Auth: llave pública de Passport (RS256, tokens EXTERNOS de Laravel) ---
     passport_public_key: str | None = None
     passport_public_key_path: str | None = None
     passport_expected_audience: str | None = None
