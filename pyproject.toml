@@ -49,6 +49,9 @@ dev = [
     "pytest>=9.0.3",
     "ruff>=0.15.14",
 ]
+docs = [
+    "mkdocs-material>=9.7.6",
+]
 
 # ---------------------------------------------------------------------------
 # pytest: SOLO unit tests SIN BD (rápidos y gratis en CI; NADA de TestContainers

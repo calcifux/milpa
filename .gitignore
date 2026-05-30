@@ -28,3 +28,6 @@ NEXT_SESSION.md
 .idea/
 .DS_Store
 docs/
+
+# Sitio generado por MkDocs (se construye en CI; no se versiona)
+site/

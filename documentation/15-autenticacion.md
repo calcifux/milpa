@@ -9,7 +9,7 @@ Sanctum**: dos carriles a la vez —
   server-rendered de primera-parte.
 
 Todo vive en `app/Core/Auth`. Hay un demo corrible que usa los dos carriles: ver el
-[Quickstart del demo](../README.md#-demo-corrible).
+[Quickstart del demo](https://github.com/calcifux/milpa#-demo-corrible).
 
 ## Guards
 

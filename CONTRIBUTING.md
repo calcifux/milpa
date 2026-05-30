@@ -20,6 +20,13 @@ uv run pytest               # si la suite pasa, ya puedes desarrollar
 Si no usas `uv`, ver [documentation/02-instalacion.md](documentation/02-instalacion.md)
 (opción pip). Con `uv`, antepón `uv run` a los comandos; con el venv activo, omítelo.
 
+> **¿Quieres ver algo funcionando ya?** Corre el demo (sqlite, sin infra):
+> ```bash
+> uv run python jornal migrate run && uv run python jornal db seed && uv run python jornal serve
+> # http://127.0.0.1:8000  ·  admin@demo.test / password
+> ```
+> Auth dual (JWT + sesión/CSRF), RBAC + ABAC, búsqueda + scroll infinito, factories con Faker.
+
 ## Requisitos
 
 - **Python 3.14+**
