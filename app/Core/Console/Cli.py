@@ -19,9 +19,10 @@ puede vivir en Core sin romper "Core ↛ Modules" (que es sobre imports estátic
 from __future__ import annotations
 
 import typer
+from rich.console import Console
 
 from app.Core.Config import settings
-from app.Core.Console import format_command_list, import_submodules
+from app.Core.Console import build_command_table, import_submodules
 from app.Core.Registry import iter_cli_apps
 
 app = typer.Typer(help=f"{settings.app_name} — comandos de consola (milpa 🌽).")
@@ -38,8 +39,8 @@ def main() -> None:
 @app.command(name="list", help="Lista TODOS los comandos disponibles (= php artisan list).")
 def list_commands() -> None:
     """El `--help` de la raíz solo muestra los grupos; esto muestra cada
-    `<grupo> <command>` con su ayuda, de un jalazo."""
-    typer.echo(format_command_list())
+    `<grupo> <command>` con su ayuda en una tabla (rich; coloreada en terminal)."""
+    Console().print(build_command_table())
 
 
 @app.command(name="serve", help="Levanta el servidor web (uvicorn). = php artisan serve.")

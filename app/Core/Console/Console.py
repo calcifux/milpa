@@ -18,12 +18,15 @@ que los decoradores corran. El Registry los orquesta para los módulos activos.
 from __future__ import annotations
 
 import importlib
+import io
 import pkgutil
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 
 @dataclass(frozen=True)
@@ -122,19 +125,31 @@ def import_submodules(package_name: str) -> None:
             importlib.import_module(f"{package_name}.{info.name}")
 
 
-def format_command_list() -> str:
-    """Render de TODOS los commands agrupados (= `php artisan list`).
+def build_command_table() -> Table:
+    """Tabla rich con TODOS los commands (`<grupo> <command>` + ayuda), ordenada por
+    grupo y luego por nombre. La imprime `jornal list` con color en la terminal.
 
     El `--help` de Typer en la raíz solo muestra los grupos (queue, schedule, ...), no
-    los subcomandos. Esto lista todo de un jalazo: `<grupo> <command>` + su ayuda.
+    los subcomandos; esto los lista todos de un jalazo.
     """
-    lines: list[str] = []
+    table = Table(title="Comandos disponibles (milpa 🌽)", title_justify="left", header_style="bold")
+    table.add_column("Comando", style="cyan", no_wrap=True)
+    table.add_column("Descripción")
     for group in sorted(_REGISTRY):
-        lines.append(f"{group}")
         for command in sorted(_REGISTRY[group], key=lambda registered: registered.name):
-            invocation = f"  {group} {command.name}"
-            lines.append(f"{invocation:<32}{command.help or ''}".rstrip())
-    return "\n".join(lines)
+            table.add_row(f"{group} {command.name}", command.help or "")
+    return table
+
+
+def format_command_list() -> str:
+    """Render del listado a STRING SIN color (para salida no-TTY, pipes y tests).
+
+    `jornal list` imprime la tabla directo a una consola rich (coloreada en terminal);
+    esta versión a string es el camino plano/determinista. Comparte `build_command_table`.
+    """
+    buffer = io.StringIO()
+    Console(file=buffer, width=100, no_color=True).print(build_command_table())
+    return buffer.getvalue()
 
 
 def registered_commands() -> dict[str, list[RegisteredCommand]]:
