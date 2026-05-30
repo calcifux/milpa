@@ -27,6 +27,32 @@ Convenciones:
 - Puedes tener varios archivos y varios routers; se descubren todos (deduplicados por
   identidad).
 
+## Controllers class-based (estilo Spring)
+
+Si prefieres agrupar endpoints en una clase (≈ `@RestController` de Spring), usa `@Controller`
+con `@Get/@Post/@Put/@Patch/@Delete` sobre los métodos. Se auto-monta igual que un `APIRouter`, y
+**convive** con el estilo función de arriba:
+
+```python
+from app.Core.Http import Controller, Get, Post
+
+@Controller("/cats", tags=["cats"])
+class CatsController:
+    @Get("/")
+    def index(self) -> list[str]: ...
+
+    @Get("/{cat_id}")
+    def show(self, cat_id: int) -> dict[str, int]: ...   # path param tipado
+
+    @Post("/", status_code=201)
+    def store(self, body: CatInput) -> dict[str, str]: ...  # body Pydantic
+```
+
+Los decoradores de verbo aceptan los **mismos kwargs** que FastAPI (`status_code`, `response_model`,
+`dependencies`, `summary`, …). `self` se resuelve solo (el controller se instancia una vez). Para
+proteger métodos: inyecta el usuario con `CurrentUser`/`Depends(guarded("jwt"))`, o usa
+`@Roles("admin")` / `@Can("note.create")` sobre el método (ver [Autenticación](15-autenticacion.md)).
+
 ## Renderizar una vista
 
 Para devolver HTML (Jinja2) en vez de JSON, usa el helper `view()`:

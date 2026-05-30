@@ -102,6 +102,7 @@ Variables clave (el `.env.example` trae todas, comentadas):
 | `MAIL_*` | Host/puerto/credenciales/remitente del correo (en local apunta a Mailpit). |
 | `CORS_*` / `TRUSTED_HOSTS` / `GZIP_ENABLED` | Middlewares HTTP (defaults seguros si se omiten). |
 | `SECURITY_HEADERS_ENABLED` / `HSTS_*` / `CONTENT_SECURITY_POLICY` | Security headers defensivos (nosniff/X-Frame-Options/Referrer-Policy ON; HSTS/CSP opt-in). |
+| `AUTH_GUARD` / `JWT_SECRET` / `SESSION_SECRET` | Auth propia: guard por default + secretos del JWT (API) y de la sesión (browser). |
 | `PASSPORT_PUBLIC_KEY_PATH` | (Opcional) Llave pública para validar tokens OAuth2 de Laravel Passport (ver §4). |
 | `LOG_LEVEL` / `LOG_JSON` | Logging (Loguru). `LOG_JSON=true` agrega `logs/app.jsonl`. |
 
@@ -159,6 +160,35 @@ por default escucha en `127.0.0.1:$APP_PORT` con `--reload`.
 > duplicados. Los crons se declaran con `@cron_task(...)` (`app/Core/Cron`): gate por
 > `APP_ENV` (`environments=[...]`), lock en Redis (`without_overlapping=True`) y logs
 > por cron con rotación (`output="<nombre>"`).
+
+---
+
+## 🎮 Demo corrible
+
+Un demo completo (usuarios + notas) que ejercita TODO el stack: **auth dual** (JWT API + sesión
+cookie/CSRF), **RBAC + ABAC**, **routing class-based** (`@Controller`/`@Get`) y UI **HTMX + Alpine +
+Pico.css**. Sobre **SQLite**, sin levantar infraestructura:
+
+```bash
+# 1) Config mínima en .env (sqlite + secretos)
+echo 'DATABASE_URL=sqlite:///milpa.db'                  >> .env
+echo 'JWT_SECRET=pon-un-secreto-largo-y-aleatorio'      >> .env
+echo 'SESSION_SECRET=pon-otro-secreto-largo-aleatorio'  >> .env
+
+# 2) migrar + sembrar + servir
+uv run python jornal migrate run     # crea las tablas (Alembic, motor-agnóstico)
+uv run python jornal db seed         # admin@demo.test + ana/beto + notas (todos: "password")
+uv run python jornal serve           # http://127.0.0.1:8000
+```
+
+- **Web (HTMX):** abre `http://127.0.0.1:8000` y entra como `admin@demo.test` / `password`. Crea y
+  borra notas (HTMX), y entra a **Usuarios** (solo rol `admin` → RBAC). Solo editas/borras tus
+  propias notas (ABAC).
+- **API (JWT):** `POST /api/login` → `{access_token}`; luego `Authorization: Bearer <token>` en
+  `/api/me`, `/api/notes` (CRUD), `/api/admin/users`. OpenAPI en **`/docs`**.
+
+El demo vive en `app/Modules/Demo/`; los modelos `User`/`Note` en `app/Models/`. Más en
+[Autenticación](documentation/15-autenticacion.md).
 
 ---
 
