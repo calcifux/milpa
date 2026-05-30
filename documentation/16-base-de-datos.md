@@ -61,8 +61,34 @@ transaccional la envuelve (ver [Repositorios y transacciones](18-repositorios-y-
 
 `AUTO_CREATE_TABLES` (default `false`). Si es `true`, el lifespan crea las tablas al
 arrancar. **Contra una BD legacy compartida, déjalo en `false`**: milpa no debe crear ni
-alterar el esquema. Para esquemas nuevos, gestiona las migraciones con Alembic (la
-`Base` ya trae una `naming_convention` estable para migraciones reproducibles).
+alterar el esquema. Para esquemas **nuevos**, versiona los cambios con migraciones (Alembic),
+no con `create_all`.
+
+## Migraciones (Alembic)
+
+Para una BD **propia** (greenfield), gestiona el esquema con migraciones versionadas. milpa
+trae Alembic integrado y operado por `jornal` (estilo `php artisan migrate`):
+
+```bash
+uv run python jornal migrate make -m "crear tabla facturas"  # genera la revisión (autogenerate)
+uv run python jornal migrate run                              # aplica las pendientes (upgrade head)
+uv run python jornal migrate status                          # revisión actual + historial
+uv run python jornal migrate rollback                        # revierte una (downgrade -1)
+```
+
+Cómo encaja con el resto del framework (sin duplicar config):
+
+- **Una sola fuente de conexión.** No hay `alembic.ini`: la config se arma en código
+  (`app/Core/Database/Migrations.py`) y `migrations/env.py` toma la BD de `DATABASE_URL`
+  (Settings) reusando el **engine** del framework. Cambias de motor sin tocar Alembic.
+- **Autogenerate desde tus modelos.** `env.py` llama a `import_all_models()` (el mismo
+  discovery de la app) para poblar `Base.metadata`; el `make` compara esos modelos contra el
+  esquema real. La `naming_convention` de `Base` hace los nombres de índices/constraints
+  reproducibles. `compare_type=True` detecta también cambios de TIPO de columna.
+- **Revisa antes de aplicar.** El archivo cae en `migrations/versions/` (versionado en git);
+  `migrate make` NO toca la BD — solo `migrate run` aplica.
+- **BD legacy:** no generes migraciones de tablas que no administras. Úsalo solo para las
+  tablas NUEVAS del proyecto.
 
 ## ¿Y NoSQL?
 
