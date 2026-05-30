@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     # deriva de aquí para garantizar `lock_timeout > visibility_timeout` por construcción.
     redis_visibility_timeout: int = 3600
 
+    # --- Reintentos de tasks (defaults framework-wide; backoff exponencial con jitter) ---
+    # Son los DEFAULTS de `retry_policy(...)` (app/Core/CeleryApp). Se pueden fijar por .env
+    # O sobreescribir A MANO en código al declarar cada task. Solo afectan a tasks que OPTAN
+    # por reintentar (pasan `autoretry_for`); NUNCA a los crons. 0 => sin reintentos.
+    task_max_retries: int = 3
+    task_retry_backoff: int = 2  # segundos base del 1er reintento (luego se duplica)
+    task_retry_backoff_max: int = 600  # tope del backoff entre reintentos (10 min)
+
     # --- Operativo ---
     # Default GENÉRICO (Core es reutilizable): cada proyecto pone su APP_NAME en .env.
     app_name: str = "App"

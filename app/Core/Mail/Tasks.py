@@ -16,18 +16,30 @@ mismos kwargs en `enqueue_mail(...)`.
 from __future__ import annotations
 
 import importlib
+import smtplib
 from typing import Any
 
+from celery import Task
 from loguru import logger
 
-from app.Core.CeleryApp import broker_guard, celery_app
+from app.Core.CeleryApp import broker_guard, celery_app, retry_policy
 from app.Core.Mail.Mailable import Mailable
 from app.Core.Mail.Mailer import mailer as default_mailer
 from app.Core.Translate import current_locale, set_request_locale
 
+# Excepciones TRANSITORIAS que justifican reintentar: caídas/timeouts del SMTP y fallos
+# de red. ConnectionError/TimeoutError cubren el "conexión rechazada/colgada" ANTES de
+# que smtplib lo envuelva; smtplib.SMTPException cubre los cuelgues post-handshake
+# (SMTPServerDisconnected, SMTPConnectError...). Deliberadamente NO incluimos OSError a
+# secas para no reintentar un FileNotFoundError de un adjunto (bug de datos, no transitorio).
+_RETRYABLE_MAIL_ERRORS = (smtplib.SMTPException, ConnectionError, TimeoutError)
 
-@celery_app.task(name="mail.send")
+
+# retry_policy(): defaults de reintento desde .env (TASK_*), overridables A MANO si algún
+# día este correo necesita una política distinta (p. ej. max_retries=5 sin tocar el entorno).
+@celery_app.task(bind=True, name="mail.send", **retry_policy(retry_for=_RETRYABLE_MAIL_ERRORS))
 def send_mail_task(
+    self: Task,
     mailable_class_path: str,
     mailable_kwargs: dict[str, Any],
     to: list[str],
@@ -35,9 +47,13 @@ def send_mail_task(
     bcc: list[str] | None = None,
     locale: str | None = None,
 ) -> None:
-    """Reinstancia el Mailable en el worker y lo manda.
+    """Reinstancia el Mailable en el worker y lo manda, con reintentos ante fallos
+    transitorios de SMTP/red (backoff exponencial; ver `_RETRYABLE_MAIL_ERRORS` y
+    `MAIL_MAX_RETRIES`/`MAIL_RETRY_BACKOFF*` en Settings).
 
     Args:
+        self: la Task de Celery (bind=True) — da acceso a `self.request.retries` para
+              loguear el intento actual y a la maquinaria de reintentos de `autoretry_for`.
         mailable_class_path: ruta dotted al Mailable concreto
                              (ej. "app.Modules.Example.Mail.MailableCheck.MailableCheck").
         mailable_kwargs: kwargs primitivos para el constructor del Mailable.
@@ -49,8 +65,16 @@ def send_mail_task(
     """
     if locale:
         set_request_locale(locale)
+    # request.retries = 0 en el primer intento; +1 por cada reintento. Lo logueamos como
+    # "intento N/total" para que un fallo transitorio sea visible y auditable en los logs.
+    # getattr defensivo: en una llamada DIRECTA (fuera del worker) el Context puede no
+    # traer `retries` poblado; en el worker/eager sí lo está.
+    attempt = (getattr(self.request, "retries", 0) or 0) + 1
+    total_attempts = (self.max_retries or 0) + 1
     logger.info(
-        "mail.send | clase:{c} | to:{t} | cc:{cc} | bcc:{bcc} | locale:{loc}",
+        "mail.send | intento {a}/{tot} | clase:{c} | to:{t} | cc:{cc} | bcc:{bcc} | locale:{loc}",
+        a=attempt,
+        tot=total_attempts,
         c=mailable_class_path,
         t=to,
         cc=cc or [],
