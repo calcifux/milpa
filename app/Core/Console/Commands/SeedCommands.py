@@ -19,7 +19,7 @@ def _run_seeder(seeder: Seeder) -> None:
     seeder.run()
 
 
-@console_command(name="seed", group="db", help="Corre los seeders (puebla la BD). = php artisan db:seed.")
+@console_command(name="seed", group="db", help="Corre los seeders (puebla la BD). (≈ php artisan db:seed)")
 def db_seed() -> None:
     """Descubre las subclases de Seeder de los módulos y las ejecuta."""
     import_all_models()

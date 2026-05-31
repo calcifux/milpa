@@ -19,7 +19,7 @@ from app.Core.Console import console_command
 @console_command(
     name="work",
     group="queue",
-    help="Arranca el worker de Celery (ejecuta las tareas en background). NO enciende el scheduler.",
+    help="Arranca el worker de Celery (procesa las tareas en background). (≈ php artisan queue:work)",
 )
 def queue_work(
     queue: str | None = typer.Option(

@@ -22,7 +22,7 @@ from app.Core.Console import console_command
 @console_command(
     name="work",
     group="schedule",
-    help="Arranca el scheduler (beat): despacha los crons. Corre UNA sola instancia.",
+    help="Arranca el scheduler/beat (despacha los crons). (≈ php artisan schedule:work)",
 )
 def schedule_work(
     loglevel: str = typer.Option(settings.log_level, help="Nivel de log del scheduler."),

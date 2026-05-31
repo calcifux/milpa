@@ -20,7 +20,7 @@ from __future__ import annotations
 import importlib
 import io
 import pkgutil
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -125,16 +125,19 @@ def import_submodules(package_name: str) -> None:
             importlib.import_module(f"{package_name}.{info.name}")
 
 
-def build_command_table() -> Table:
-    """Tabla rich con TODOS los commands (`<grupo> <command>` + ayuda), ordenada por
-    grupo y luego por nombre. La imprime `jornal list` con color en la terminal.
+def build_command_table(general: Sequence[tuple[str, str]] = ()) -> Table:
+    """Tabla rich con TODOS los commands. `general` son los comandos RAÍZ (`serve`, `list`…),
+    que no van por grupo; el resto se lista como `<grupo> <command>`, ordenado por grupo+nombre.
+    La imprime `jornal list` con color en la terminal.
 
-    El `--help` de Typer en la raíz solo muestra los grupos (queue, schedule, ...), no
-    los subcomandos; esto los lista todos de un jalazo.
+    El `--help` de Typer en la raíz solo muestra los grupos (queue, schedule, ...) y omite los
+    subcomandos y los comandos raíz; esto los lista todos de un jalazo.
     """
-    table = Table(title="Comandos disponibles (milpa 🌽)", title_justify="left", header_style="bold")
+    table = Table(title="🌽 Labores de la milpa", title_justify="left", header_style="bold")
     table.add_column("Comando", style="cyan", no_wrap=True)
     table.add_column("Descripción")
+    for name, help_text in general:
+        table.add_row(name, help_text)
     for group in sorted(_REGISTRY):
         for command in sorted(_REGISTRY[group], key=lambda registered: registered.name):
             table.add_row(f"{group} {command.name}", command.help or "")

@@ -24,7 +24,7 @@ from app.Core.Logging import setup_logging
 @console_command(
     name="run",
     group="schedule",
-    help="Despacha los crons que tocan este minuto. Lo dispara el crontab del SO (* * * * *).",
+    help="Despacha los crons que tocan este minuto. (≈ php artisan schedule:run)",
 )
 def schedule_run() -> None:
     """Evalúa qué crons tocan ahora y los manda a la cola. = `schedule:run` de Laravel."""

@@ -36,14 +36,15 @@ def main() -> None:
     """
 
 
-@app.command(name="list", help="Lista TODOS los comandos disponibles (= php artisan list).")
+@app.command(name="list", help="Lista todos los comandos disponibles. (≈ php artisan list)")
 def list_commands() -> None:
-    """El `--help` de la raíz solo muestra los grupos; esto muestra cada
-    `<grupo> <command>` con su ayuda en una tabla (rich; coloreada en terminal)."""
-    Console().print(build_command_table())
+    """El `--help` de la raíz solo muestra los grupos; esto lista TODO (comandos raíz como
+    `serve`/`list` + cada `<grupo> <command>`) con su ayuda, en tabla rich coloreada."""
+    general = sorted((command.name or "", command.help or "") for command in app.registered_commands if command.name)
+    Console().print(build_command_table(general))
 
 
-@app.command(name="serve", help="Levanta el servidor web (uvicorn). = php artisan serve.")
+@app.command(name="serve", help="Levanta el servidor web (uvicorn). (≈ php artisan serve)")
 def serve(
     host: str = typer.Option("127.0.0.1", help="Host de escucha."),
     port: int = typer.Option(settings.app_port, help="Puerto (default: APP_PORT)."),

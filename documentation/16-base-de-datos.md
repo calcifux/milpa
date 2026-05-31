@@ -90,6 +90,38 @@ Cómo encaja con el resto del framework (sin duplicar config):
 - **BD legacy:** no generes migraciones de tablas que no administras. Úsalo solo para las
   tablas NUEVAS del proyecto.
 
+### Catálogos fijos: siémbralos en la migración (`op.bulk_insert`)
+
+Para datos **de catálogo** que son parte del esquema (estados, tipos, roles fijos: cambian con el
+código, no con el uso), no necesitas un seeder aparte — siémbralos **dentro de la propia migración**
+con `op.bulk_insert`. Así el catálogo viaja versionado con el `upgrade`/`downgrade` y queda igual en
+todos los entornos:
+
+```python
+def upgrade() -> None:
+    estatus = op.create_table(
+        "estatus_factura",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("clave", sa.String(20), nullable=False, unique=True),
+        sa.Column("etiqueta", sa.String(60), nullable=False),
+    )
+    op.bulk_insert(  # el catálogo es parte del esquema → va aquí, no en un seeder
+        estatus,
+        [
+            {"id": 1, "clave": "borrador", "etiqueta": "Borrador"},
+            {"id": 2, "clave": "timbrada", "etiqueta": "Timbrada"},
+            {"id": 3, "clave": "cancelada", "etiqueta": "Cancelada"},
+        ],
+    )
+
+
+def downgrade() -> None:
+    op.drop_table("estatus_factura")
+```
+
+Regla práctica: **catálogo fijo → migración** (`op.bulk_insert`); **datos de ejemplo / demo o
+volumen variable → seeder + factory** (`jornal db seed`, Faker). Ver [La consola jornal](08-consola-jornal.md).
+
 ## ¿Y NoSQL?
 
 Hoy la capa cubre **SQL**. NoSQL (Mongo, etc.) está **diferido on-demand**: cuando se

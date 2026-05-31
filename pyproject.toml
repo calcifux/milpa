@@ -1,6 +1,6 @@
 [project]
 name = "milpa"
-version = "0.1.0"
+version = "0.2.0"
 description = "Microframework Python estilo Laravel/Spring (FastAPI + Celery + SQLAlchemy + Typer) para construir monolitos modulares y migrar apps legacy."
 authors = [{ name = "@Calcifux (Carlos Guillermo Reyes Ramiro)" }]
 license = "MIT"
