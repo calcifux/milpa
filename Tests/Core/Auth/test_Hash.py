@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import bcrypt
 
-from app.Core.Auth import Hash
+from milpa.Core.Auth import Hash
 
 
 def test_make_uses_argon2id_and_round_trips() -> None:

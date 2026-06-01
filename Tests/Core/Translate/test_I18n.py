@@ -21,8 +21,8 @@ import i18n as _i18nice
 import pytest
 from pytest import MonkeyPatch
 
-from app.Core.Translate import I18n as translate_module
-from app.Core.Translate import t
+from milpa.Core.Translate import I18n as translate_module
+from milpa.Core.Translate import t
 
 # --- Unit tests del wrapper (con mock de i18nice) ---------------------------
 

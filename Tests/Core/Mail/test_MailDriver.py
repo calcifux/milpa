@@ -15,9 +15,9 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
-from app.Core.Config import settings
-from app.Core.Mail.Mailable import MailContent
-from app.Core.Mail.Mailer import Mailer
+from milpa.Core.Config import settings
+from milpa.Core.Mail.Mailable import MailContent
+from milpa.Core.Mail.Mailer import Mailer
 
 
 def _boom(*args: Any, **kwargs: Any) -> None:

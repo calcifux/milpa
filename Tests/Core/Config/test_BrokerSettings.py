@@ -4,7 +4,7 @@ con los fallbacks correctos, y visibility_timeout solo aplica a redis/SQS.
 
 from __future__ import annotations
 
-from app.Core.Config.Settings import Settings
+from milpa.Core.Config.Settings import Settings
 
 
 def test_broker_falls_back_to_local_redis_when_empty() -> None:

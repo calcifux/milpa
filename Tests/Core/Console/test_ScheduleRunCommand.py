@@ -13,9 +13,9 @@ from datetime import datetime
 import pytest
 from pytest import MonkeyPatch
 
-from app.Core.Clock import SystemClock
-from app.Core.Console.Commands.ScheduleRunCommand import schedule_run
-from app.Core.Cron import cron_task, every_minute, registered_crons, reset_cron_registry
+from milpa.Core.Clock import SystemClock
+from milpa.Core.Console.Commands.ScheduleRunCommand import schedule_run
+from milpa.Core.Cron import cron_task, every_minute, registered_crons, reset_cron_registry
 
 
 @pytest.fixture(autouse=True)

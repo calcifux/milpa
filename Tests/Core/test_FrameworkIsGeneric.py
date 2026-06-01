@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-_CORE_DIR = Path(__file__).resolve().parents[2] / "app" / "Core"
-_PROJECT_ROOT = _CORE_DIR.parents[1]
+_CORE_DIR = Path(__file__).resolve().parents[2] / "src" / "milpa" / "Core"
+_PROJECT_ROOT = _CORE_DIR.parents[2]
 # Marcas / términos del proyecto que NO deben aparecer en el framework.
 _FORBIDDEN = ("aklara",)
 

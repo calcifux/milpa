@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
-import app.Core.Database.Transactional as tx
+import milpa.Core.Database.Transactional as tx
 
 
 class _FakeSession:

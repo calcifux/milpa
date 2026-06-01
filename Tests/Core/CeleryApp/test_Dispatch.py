@@ -6,7 +6,7 @@ import pytest
 import redis.exceptions
 from kombu.exceptions import OperationalError
 
-from app.Core.CeleryApp import QueueUnavailableError, broker_guard
+from milpa.Core.CeleryApp import QueueUnavailableError, broker_guard
 
 
 def test_broker_guard_converts_kombu_operational_error() -> None:

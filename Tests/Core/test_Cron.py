@@ -4,8 +4,8 @@ Espeja app/Core/Cron.py. Solo el gate por entorno (no usa lock → no toca Redis
 
 import pytest
 
-from app.Core.Config import settings
-from app.Core.Cron import cron_task
+from milpa.Core.Config import settings
+from milpa.Core.Cron import cron_task
 
 
 def test_cron_task_skips_when_env_not_allowed() -> None:

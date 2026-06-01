@@ -13,9 +13,9 @@ import pytest
 from pytest import MonkeyPatch
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-import app.Core.Database.Transactional as tx
-from app.Core.Database.Repository import Repository
-from app.Core.Errors import ResourceNotFoundError
+import milpa.Core.Database.Transactional as tx
+from milpa.Core.Database.Repository import Repository
+from milpa.Core.Errors import ResourceNotFoundError
 
 
 class _TestBase(DeclarativeBase):

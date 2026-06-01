@@ -4,7 +4,7 @@ queda registrada sin que nadie la liste (la descubre Registry.iter_routers).
 
 from __future__ import annotations
 
-from app.Core.Http import create_app
+from milpa.Core.Http import create_app
 
 
 def test_example_router_is_auto_mounted() -> None:

@@ -10,8 +10,8 @@ from kombu.exceptions import OperationalError
 from pytest import MonkeyPatch
 from starlette.testclient import TestClient
 
-from app.Core.Http import create_app
-from app.Modules.Example.Jobs.HelloJob import hello_world
+from milpa.Core.Http import create_app
+from milpa.Modules.Example.Jobs.HelloJob import hello_world
 
 
 def test_endpoint_enqueues_the_hello_job(monkeypatch: MonkeyPatch) -> None:

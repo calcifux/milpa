@@ -5,8 +5,8 @@ y el load_path agregado (Lang). Base del aislamiento microservicio-ready.
 
 from __future__ import annotations
 
-from app.Core.Translate import t
-from app.Core.View.TemplateEngine import TemplateEngine
+from milpa.Core.Translate import t
+from milpa.Core.View.TemplateEngine import TemplateEngine
 
 
 def test_module_view_auto_discovered_and_uses_module_lang() -> None:

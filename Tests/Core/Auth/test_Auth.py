@@ -14,10 +14,10 @@ from fastapi import Depends
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
-from app.Core.Auth import Auth, Authenticatable, Hash, authenticated, set_user_provider
-from app.Core.Auth.Tokens import decode_token, issue_token
-from app.Core.Config import settings
-from app.Core.Http.Http import create_app
+from milpa.Core.Auth import Auth, Authenticatable, Hash, authenticated, set_user_provider
+from milpa.Core.Auth.Tokens import decode_token, issue_token
+from milpa.Core.Config import settings
+from milpa.Core.Http.Http import create_app
 
 # Secreto de prueba ≥32 bytes (evita el InsecureKeyLengthWarning de pyjwt para HS256).
 _TEST_SECRET = "test-secret-please-change-0123456789-abcdef"

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from app.Core.Mail.Mailable import Mailable, MailContent
+from milpa.Core.Mail.Mailable import Mailable, MailContent
 
 
 def test_mail_content_defaults_to_empty_collections() -> None:

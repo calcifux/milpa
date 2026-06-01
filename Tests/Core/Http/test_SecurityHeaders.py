@@ -8,9 +8,9 @@ from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
-from app.Core.Config import settings
-from app.Core.Http.Middleware import register_middlewares
-from app.Core.Http.SecurityHeaders import SecurityHeadersMiddleware
+from milpa.Core.Config import settings
+from milpa.Core.Http.Middleware import register_middlewares
+from milpa.Core.Http.SecurityHeaders import SecurityHeadersMiddleware
 
 
 def _app_with_route() -> FastAPI:

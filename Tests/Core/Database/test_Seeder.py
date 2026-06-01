@@ -7,8 +7,8 @@ from collections.abc import Iterator
 
 import pytest
 
-from app.Core.Console import registered_commands, reset_registry
-from app.Core.Database.Seeder import Seeder, registered_seeders, reset_seeders
+from milpa.Core.Console import registered_commands, reset_registry
+from milpa.Core.Database.Seeder import Seeder, registered_seeders, reset_seeders
 
 
 @pytest.fixture(autouse=True)
@@ -36,7 +36,7 @@ def test_reset_clears_registry() -> None:
 
 def test_db_seed_command_is_registered() -> None:
     reset_registry()
-    import app.Core.Console.Commands.SeedCommands as seed_module
+    import milpa.Core.Console.Commands.SeedCommands as seed_module
 
     importlib.reload(seed_module)
     groups = registered_commands()

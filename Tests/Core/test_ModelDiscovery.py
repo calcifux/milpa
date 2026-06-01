@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import configure_mappers
 
-import app.Models  # noqa: F401  (el import dispara el self-discovery del __init__)
+import milpa.Models  # noqa: F401  (el import dispara el self-discovery del __init__)
 
 
 def test_models_self_discovery_and_mappers_configure() -> None:

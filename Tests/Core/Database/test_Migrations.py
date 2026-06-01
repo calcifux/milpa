@@ -17,9 +17,9 @@ import typer
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
-import app.Core.Console.Commands.MigrateCommands as migrate_module
-from app.Core.Console import build_cli_apps, registered_commands, reset_registry
-from app.Core.Database.Migrations import make_alembic_config
+import milpa.Core.Console.Commands.MigrateCommands as migrate_module
+from milpa.Core.Console import build_cli_apps, registered_commands, reset_registry
+from milpa.Core.Database.Migrations import make_alembic_config
 
 
 def test_alembic_config_points_to_migrations_dir() -> None:

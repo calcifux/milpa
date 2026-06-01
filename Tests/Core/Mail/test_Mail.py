@@ -11,10 +11,10 @@ from typing import Any
 
 from pytest import MonkeyPatch
 
-import app.Core.Mail.Tasks as tasks_module
-from app.Core.Mail import Mail
-from app.Core.Mail.Mailable import Mailable, MailContent
-from app.Core.Mail.Mailer import mailer
+import milpa.Core.Mail.Tasks as tasks_module
+from milpa.Core.Mail import Mail
+from milpa.Core.Mail.Mailable import Mailable, MailContent
+from milpa.Core.Mail.Mailer import mailer
 
 
 class _FakeMailable(Mailable):

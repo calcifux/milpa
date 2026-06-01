@@ -10,11 +10,11 @@ import typer
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
-import app.Core.Console.Commands.DbCommands as db_mod
-import app.Core.Console.Commands.MakeCommands as make_mod
-import app.Core.Console.Commands.RouteCommands as route_mod
-import app.Core.Console.Commands.SeedCommands as seed_mod
-from app.Core.Console import build_cli_apps, registered_commands, reset_registry
+import milpa.Core.Console.Commands.DbCommands as db_mod
+import milpa.Core.Console.Commands.MakeCommands as make_mod
+import milpa.Core.Console.Commands.RouteCommands as route_mod
+import milpa.Core.Console.Commands.SeedCommands as seed_mod
+from milpa.Core.Console import build_cli_apps, registered_commands, reset_registry
 
 
 @pytest.fixture

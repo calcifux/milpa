@@ -9,7 +9,7 @@ from fastapi import Depends
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
-from app.Core.Auth import (
+from milpa.Core.Auth import (
     Authenticatable,
     Gate,
     Roles,
@@ -17,13 +17,13 @@ from app.Core.Auth import (
     set_current_user,
     set_user_provider,
 )
-from app.Core.Auth.Authorization import reset_policies
-from app.Core.Auth.Tokens import issue_token
-from app.Core.Config import settings
-from app.Core.Errors import ForbiddenError
-from app.Core.Http import Controller, Get
-from app.Core.Http.Http import create_app
-from app.Core.Http.Routing import ROUTER_ATTR
+from milpa.Core.Auth.Authorization import reset_policies
+from milpa.Core.Auth.Tokens import issue_token
+from milpa.Core.Config import settings
+from milpa.Core.Errors import ForbiddenError
+from milpa.Core.Http import Controller, Get
+from milpa.Core.Http.Http import create_app
+from milpa.Core.Http.Routing import ROUTER_ATTR
 
 _SECRET = "test-secret-please-change-0123456789-abcdef"
 

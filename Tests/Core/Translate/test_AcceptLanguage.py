@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.Core.Config import settings
-from app.Core.Translate import resolve_accept_language
+from milpa.Core.Config import settings
+from milpa.Core.Translate import resolve_accept_language
 
 
 def test_picks_highest_q_primary_subtag() -> None:

@@ -6,7 +6,7 @@ cuando no se fijan explícitos; un nombre explícito gana.
 
 from __future__ import annotations
 
-from app.Core.Config.Settings import Settings
+from milpa.Core.Config.Settings import Settings
 
 
 def test_cookie_names_default_to_milpa_prefix() -> None:

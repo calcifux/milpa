@@ -16,11 +16,11 @@ import typer
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
-import app.Core.Console.Commands.QueueWorkCommand as queue_module
-import app.Core.Console.Commands.ScheduleWorkCommand as schedule_module
-from app.Core.CeleryApp import celery_app
-from app.Core.Config import settings
-from app.Core.Console import build_cli_apps, reset_registry
+import milpa.Core.Console.Commands.QueueWorkCommand as queue_module
+import milpa.Core.Console.Commands.ScheduleWorkCommand as schedule_module
+from milpa.Core.CeleryApp import celery_app
+from milpa.Core.Config import settings
+from milpa.Core.Console import build_cli_apps, reset_registry
 
 
 @pytest.fixture(autouse=True)

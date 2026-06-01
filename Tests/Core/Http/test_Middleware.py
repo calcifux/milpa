@@ -11,8 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pytest import MonkeyPatch
 
-from app.Core.Config import settings
-from app.Core.Http.Middleware import register_middlewares
+from milpa.Core.Config import settings
+from milpa.Core.Http.Middleware import register_middlewares
 
 
 def _classes(app: FastAPI) -> set[Any]:

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from starlette.testclient import TestClient
 
-from app.Core.Http import create_app
+from milpa.Core.Http import create_app
 
 
 def test_router_dependency_gates_the_route() -> None:

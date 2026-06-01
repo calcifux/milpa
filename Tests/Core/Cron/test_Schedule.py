@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.Core.Cron import (
+from milpa.Core.Cron import (
     cron,
     daily,
     daily_at,

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from app.Core.Clock import FixedClock, SystemClock
+from milpa.Core.Clock import FixedClock, SystemClock
 
 
 def test_system_clock_returns_naive_local_datetime() -> None:

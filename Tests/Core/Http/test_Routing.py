@@ -11,9 +11,9 @@ from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
-from app.Core.Http import Controller, Get, Post
-from app.Core.Http.Http import create_app
-from app.Core.Http.Routing import ROUTER_ATTR
+from milpa.Core.Http import Controller, Get, Post
+from milpa.Core.Http.Http import create_app
+from milpa.Core.Http.Routing import ROUTER_ATTR
 
 
 class _Item(BaseModel):

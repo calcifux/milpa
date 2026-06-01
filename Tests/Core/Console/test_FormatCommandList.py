@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from app.Core.Console import build_command_table, console_command, format_command_list, reset_registry
+from milpa.Core.Console import build_command_table, console_command, format_command_list, reset_registry
 
 
 @pytest.fixture(autouse=True)

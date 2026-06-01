@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.Core.CeleryApp import retry_policy
-from app.Core.Config import settings
+from milpa.Core.CeleryApp import retry_policy
+from milpa.Core.Config import settings
 
 
 def test_retry_policy_uses_env_defaults() -> None:

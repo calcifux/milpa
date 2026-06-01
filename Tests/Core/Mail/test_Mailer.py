@@ -14,9 +14,9 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
-from app.Core.Mail.Mailable import MailContent
-from app.Core.Mail.Mailer import Mailer
-from app.Core.View.TemplateEngine import TemplateEngine
+from milpa.Core.Mail.Mailable import MailContent
+from milpa.Core.Mail.Mailer import Mailer
+from milpa.Core.View.TemplateEngine import TemplateEngine
 
 _PLACEHOLDER_RE = re.compile(r"%\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 
@@ -86,9 +86,9 @@ def _build_engine(tmp_path: Path) -> TemplateEngine:
 
 
 def test_send_renders_template_and_dispatches_to_smtp(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("app.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_encryption", "")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_username", "")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_encryption", "")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_username", "")
 
     mailer = Mailer(engine=_build_engine(tmp_path))
     mailer.send(
@@ -110,10 +110,10 @@ def test_send_renders_template_and_dispatches_to_smtp(monkeypatch: MonkeyPatch, 
 
 
 def test_send_with_tls_calls_starttls(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("app.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_encryption", "tls")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_username", "user")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_password", "secret")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_encryption", "tls")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_username", "user")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_password", "secret")
 
     mailer = Mailer(engine=_build_engine(tmp_path))
     mailer.send(
@@ -127,9 +127,9 @@ def test_send_with_tls_calls_starttls(monkeypatch: MonkeyPatch, tmp_path: Path) 
 
 
 def test_send_includes_cc_and_bcc_in_recipients(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("app.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_encryption", "")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_username", "")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_encryption", "")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_username", "")
 
     mailer = Mailer(engine=_build_engine(tmp_path))
     mailer.send(
@@ -149,11 +149,11 @@ def test_send_includes_cc_and_bcc_in_recipients(monkeypatch: MonkeyPatch, tmp_pa
 
 
 def test_send_uses_mailable_from_overrides_settings_default(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("app.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_encryption", "")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_username", "")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_from_email", "default@aklara.com")
-    monkeypatch.setattr("app.Core.Mail.Mailer.settings.mail_from_name", "Default")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.smtplib.SMTP", _FakeSmtp)
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_encryption", "")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_username", "")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_from_email", "default@aklara.com")
+    monkeypatch.setattr("milpa.Core.Mail.Mailer.settings.mail_from_name", "Default")
 
     mailer = Mailer(engine=_build_engine(tmp_path))
     mailer.send(

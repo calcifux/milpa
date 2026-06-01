@@ -15,13 +15,13 @@ from collections.abc import Callable, Iterator
 import pytest
 from typer.testing import CliRunner
 
-from app.Core.Console import (
+from milpa.Core.Console import (
     build_cli_apps,
     console_command,
     registered_commands,
     reset_registry,
 )
-from app.Core.Console.Console import _group_from_module
+from milpa.Core.Console.Console import _group_from_module
 
 
 @pytest.fixture(autouse=True)

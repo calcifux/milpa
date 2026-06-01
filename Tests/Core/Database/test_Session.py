@@ -7,7 +7,7 @@ ejecución real contra Postgres/Oracle se valida aparte (no hay esos motores en 
 
 import re
 
-from app.Core.Database.Session import _app_timezone_offset, _set_timezone_statement
+from milpa.Core.Database.Session import _app_timezone_offset, _set_timezone_statement
 
 
 def test_app_timezone_offset_has_signed_hhmm_format() -> None:

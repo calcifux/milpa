@@ -10,9 +10,9 @@ from fastapi import HTTPException
 from pytest import MonkeyPatch
 from starlette.requests import Request
 
-import app.Core.Auth.Guards as guards_mod
-from app.Core.Auth.Guards import PassportGuard
-from app.Core.Auth.Providers import set_user_provider
+import milpa.Core.Auth.Guards as guards_mod
+from milpa.Core.Auth.Guards import PassportGuard
+from milpa.Core.Auth.Providers import set_user_provider
 
 
 class _FakeUser:

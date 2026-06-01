@@ -13,8 +13,8 @@ import pytest
 from pytest import MonkeyPatch
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-import app.Core.Database.Transactional as tx
-from app.Core.Database import Factory
+import milpa.Core.Database.Transactional as tx
+from milpa.Core.Database import Factory
 
 
 class _TestBase(DeclarativeBase):

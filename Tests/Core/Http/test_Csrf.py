@@ -9,8 +9,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.Core.Config import settings
-from app.Core.Http.Csrf import CsrfMiddleware
+from milpa.Core.Config import settings
+from milpa.Core.Http.Csrf import CsrfMiddleware
 
 
 def _app() -> FastAPI:

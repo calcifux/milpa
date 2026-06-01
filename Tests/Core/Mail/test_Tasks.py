@@ -13,11 +13,11 @@ from typing import Any
 
 from pytest import MonkeyPatch
 
-from app.Core.CeleryApp import celery_app
-from app.Core.Config import settings
-from app.Core.Mail import Tasks
-from app.Core.Mail.Mailable import MailContent
-from app.Core.Mail.Tasks import send_mail_task
+from milpa.Core.CeleryApp import celery_app
+from milpa.Core.Config import settings
+from milpa.Core.Mail import Tasks
+from milpa.Core.Mail.Mailable import MailContent
+from milpa.Core.Mail.Tasks import send_mail_task
 
 
 class _FakeMailable:

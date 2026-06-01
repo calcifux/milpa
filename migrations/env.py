@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from alembic import context
 
-from app.Core.Config import settings
-from app.Core.Database import Base, engine
-from app.Core.Registry import import_all_models
+from milpa.Core.Config import settings
+from milpa.Core.Database import Base, engine
+from milpa.Core.Registry import import_all_models
 
 # Importa TODOS los modelos compartidos para que Base.metadata esté completa antes del
 # autogenerate (si no, Alembic creería que "no hay tablas" y generaría migraciones vacías).

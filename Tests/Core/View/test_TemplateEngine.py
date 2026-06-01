@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 from jinja2 import UndefinedError
 
-from app.Core.View.TemplateEngine import TemplateEngine
+from milpa.Core.View.TemplateEngine import TemplateEngine
 
 _PLACEHOLDER_RE = re.compile(r"%\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 

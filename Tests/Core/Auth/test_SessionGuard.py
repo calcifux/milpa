@@ -12,9 +12,9 @@ from fastapi import Depends, Request
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
-from app.Core.Auth import Auth, Authenticatable, guarded, set_user_provider
-from app.Core.Config import settings
-from app.Core.Http.Http import create_app
+from milpa.Core.Auth import Auth, Authenticatable, guarded, set_user_provider
+from milpa.Core.Config import settings
+from milpa.Core.Http.Http import create_app
 
 
 class _FakeUser:

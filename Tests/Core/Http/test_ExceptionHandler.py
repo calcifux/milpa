@@ -10,8 +10,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.Core.Errors import ConflictError, DomainError, ResourceNotFoundError
-from app.Core.Http.Http import create_app
+from milpa.Core.Errors import ConflictError, DomainError, ResourceNotFoundError
+from milpa.Core.Http.Http import create_app
 
 
 def _client() -> TestClient:
