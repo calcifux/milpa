@@ -37,6 +37,7 @@ from jinja2 import (
 )
 
 from milpa.Core.Config import settings
+from milpa.Core.Discovery import package_dir
 from milpa.Core.Translate import t as default_translate
 
 # Raíz del PAQUETE milpa (…/src/milpa/Core/View/TemplateEngine.py -> parents[2]).
@@ -51,8 +52,8 @@ def _module_views_dirs() -> dict[str, Path]:
     `app/Modules/<X>/Resources/Views` que exista. El prefijo = nombre del módulo en
     minúsculas → los templates se referencian namespaced: "example/welcome.html.j2"
     (= `example::welcome` de Laravel). Self-contained: viajan con el módulo al extraerlo."""
-    modules_root = _PROJECT_ROOT / "Modules"
-    if not modules_root.is_dir():
+    modules_root = package_dir(settings.modules_package)
+    if modules_root is None or not modules_root.is_dir():
         return {}
     dirs: dict[str, Path] = {}
     for module_dir in sorted(modules_root.iterdir()):
@@ -78,9 +79,15 @@ def _build_loader(templates_dir: Path | None) -> BaseLoader:
         return FileSystemLoader(str(templates_dir))
     shared = FileSystemLoader(str(_WEB_VIEWS_DIR))
     module_loaders = {prefix: FileSystemLoader(str(path)) for prefix, path in _module_views_dirs().items()}
+    # Orden de prioridad: vistas por-módulo (namespaced) > vistas del USUARIO
+    # (USER_VIEWS_DIR, proyecto externo; puede sobreescribir layouts) > raíz del framework.
+    chain: list[BaseLoader] = []
     if module_loaders:
-        return ChoiceLoader([PrefixLoader(module_loaders), shared])
-    return shared
+        chain.append(PrefixLoader(module_loaders))
+    if settings.user_views_dir and Path(settings.user_views_dir).is_dir():
+        chain.append(FileSystemLoader(settings.user_views_dir))
+    chain.append(shared)
+    return ChoiceLoader(chain) if len(chain) > 1 else shared
 
 
 class TemplateEngine:

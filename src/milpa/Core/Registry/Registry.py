@@ -22,15 +22,14 @@ from __future__ import annotations
 import importlib
 import pkgutil
 from collections.abc import Iterator
-from pathlib import Path
 from types import ModuleType
 
 import typer
 from fastapi import APIRouter
 
+from milpa.Core.Config import settings
 from milpa.Core.Console import build_cli_apps, import_submodules
-
-MODULES_PACKAGE = "milpa.Modules"
+from milpa.Core.Discovery import package_dir
 
 
 def module_packages() -> list[str]:
@@ -39,11 +38,15 @@ def module_packages() -> list[str]:
     carpeta existe, igual que Laravel descubre los packages instalados. El
     control de qué corre solo NO está aquí, sino en `@cron_task` (environments)
     + en si arrancas `celery beat`. Ver docs/11_framework_vision.md."""
-    modules_root = importlib.import_module(MODULES_PACKAGE)
+    package = settings.modules_package
+    try:
+        modules_root = importlib.import_module(package)
+    except ModuleNotFoundError:
+        return []  # paquete de módulos no presente (p. ej. proyecto recién creado): cero módulos
     if not hasattr(modules_root, "__path__"):
         return []
     return [
-        f"{MODULES_PACKAGE}.{info.name}"
+        f"{package}.{info.name}"
         for info in pkgutil.iter_modules(modules_root.__path__)
         if info.ispkg and not info.name.startswith("_")
     ]
@@ -60,7 +63,7 @@ def import_all_models() -> None:
     """Registra TODAS las tablas en Base.metadata. Basta importar el paquete: su
     __init__ auto-importa todos los modelos (self-discovery con pkgutil), así agregar
     un modelo = crear su archivo; no hay lista manual en ningún __init__."""
-    importlib.import_module("milpa.Models")
+    importlib.import_module(settings.models_package)
 
 
 def import_all_tasks() -> None:
@@ -151,9 +154,12 @@ def iter_static_mounts() -> Iterator[tuple[str, str]]:
 
     Como el resto del Registry, el acoplamiento a Modules es por RUTA del filesystem
     (string), no por import estático, así import-linter no marca Core↛Modules.
-    `parents[2]` desde app/Core/Registry/Registry.py = app/, de ahí /Modules.
+    La carpeta de módulos se resuelve con `package_dir(settings.modules_package)`
+    (funciona en el repo y pip-instalado), no con aritmética de __file__.
     """
-    modules_dir = Path(__file__).resolve().parents[2] / "Modules"
+    modules_dir = package_dir(settings.modules_package)
+    if modules_dir is None:
+        return
     for package in module_packages():
         module_name = package.rsplit(".", 1)[-1]
         static_dir = modules_dir / module_name / "Resources" / "Static"

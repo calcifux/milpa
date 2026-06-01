@@ -179,6 +179,25 @@ class Settings(BaseSettings):
     log_json: bool = False
     log_dir: str = "logs"
 
+    # --- Layout del PROYECTO: DÓNDE vive el código del USUARIO ---
+    # milpa instalado como paquete NO puede adivinar dónde está tu proyecto contando
+    # carpetas desde sí mismo (en site-packages eso apunta a otro lado). Lo lee de aquí.
+    # Los DEFAULTS = el layout de ESTE repo, así no se rompe nada si no configuras.
+    # Un proyecto EXTERNO los apunta a su propio paquete/carpetas vía .env:
+    #   MODULES_PACKAGE=app.Modules   MODELS_PACKAGE=app.Models
+    #   USER_VIEWS_DIR=app/Resources/Views   MIGRATIONS_DIR=migrations  ...
+    # Paquetes (notación punteada, importables):
+    modules_package: str = "milpa.Modules"  # dónde escanear los módulos (rutas/jobs/crons/seeders/i18n/vistas)
+    models_package: str = "milpa.Models"  # dónde viven los modelos (se cargan en Base.metadata)
+    app_commands_package: str = "milpa.Console.Commands"  # commands GENERALES del proyecto (opcional; tolera ausencia)
+    # Carpetas de recursos del USUARIO (relativas al cwd del proyecto). "" => no se usan
+    # (en ESTE repo van vacías: las vistas/lang/static del framework salen del paquete).
+    user_views_dir: str = ""  # p. ej. "app/Resources/Views" en un proyecto externo
+    user_lang_dir: str = ""  # p. ej. "app/Resources/Lang"
+    user_static_dir: str = ""  # p. ej. "app/Resources/Static" (se sirve en "/static")
+    # Carpeta de migraciones Alembic, relativa al cwd del proyecto. Default "migrations".
+    migrations_dir: str = "migrations"
+
     @property
     def effective_broker_url(self) -> str:
         """Broker de Celery; cae al redis local por default si BROKER_URL está vacío."""

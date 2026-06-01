@@ -41,6 +41,7 @@ from typing import Any
 import i18n as _i18nice
 
 from milpa.Core.Config import settings
+from milpa.Core.Discovery import package_dir
 
 # Locale del REQUEST actual (request-scoped vía contextvar). Lo fija la capa HTTP
 # desde Accept-Language; `t()` lo usa cuando no se pasa locale explícito. Fuera de
@@ -100,8 +101,8 @@ def _module_lang_dirs() -> list[Path]:
     su prefijo (p. ej. `Resources/Lang/example/Emails/x.es.yml` → key `example.Emails.x`), así
     no chocan namespaces entre módulos (i18nice no tiene prefijo nativo por-path).
     Self-contained: viajan con el módulo al extraerlo."""
-    modules_root = _PROJECT_ROOT / "Modules"
-    if not modules_root.is_dir():
+    modules_root = package_dir(settings.modules_package)
+    if modules_root is None or not modules_root.is_dir():
         return []
     return [
         module_dir / "Resources" / "Lang"
@@ -116,9 +117,10 @@ def _configure() -> None:
     `i18nice` mantiene estado de módulo (igual que las facades de Laravel).
     Idempotente: agregar un mismo path dos veces se evita con un `if not in`.
     """
-    # Base compartida + los Lang auto-descubiertos de cada módulo.
-    for lang_dir in [_LANG_DIR, *_module_lang_dirs()]:
-        if str(lang_dir) not in _i18nice.load_path:
+    # Lang del framework + del USUARIO (si está configurado USER_LANG_DIR) + por módulo.
+    user_lang = [Path(settings.user_lang_dir)] if settings.user_lang_dir else []
+    for lang_dir in [_LANG_DIR, *user_lang, *_module_lang_dirs()]:
+        if lang_dir.is_dir() and str(lang_dir) not in _i18nice.load_path:
             _i18nice.load_path.append(str(lang_dir))
     _i18nice.set("file_format", "yml")
     _i18nice.set("filename_format", "{namespace}.{locale}.{format}")

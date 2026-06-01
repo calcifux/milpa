@@ -17,9 +17,11 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 
-# migrations/ vive en la RAÍZ del repo del proyecto. parents[4] desde
-# src/milpa/Core/Database/Migrations.py: [0]=Database [1]=Core [2]=milpa [3]=src [4]=raíz
-_MIGRATIONS_DIR = Path(__file__).resolve().parents[4] / "migrations"
+from milpa.Core.Config import settings
+
+# Carpeta de migraciones del PROYECTO, relativa al cwd (configurable: MIGRATIONS_DIR).
+# Default "migrations" → ./migrations del proyecto. Se resuelve a absoluta para Alembic.
+_MIGRATIONS_DIR = Path(settings.migrations_dir).resolve()
 
 
 def make_alembic_config() -> Config:

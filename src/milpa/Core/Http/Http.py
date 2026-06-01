@@ -89,7 +89,13 @@ def create_app() -> FastAPI:
     # toda la app, p. ej. el welcome.css del layout base). Se monta DESPUÉS de los
     # per-módulo para que "/static/<x>/..." haga match primero (Starlette: gana el
     # primer match). parents[2] desde app/Core/Http/Http.py = app/.
-    shared_static = Path(__file__).resolve().parents[2] / "Resources" / "Static"
+    # "/static": las del USUARIO (USER_STATIC_DIR) si están configuradas; si no, las del
+    # framework (src/milpa/Resources/Static, p. ej. el welcome.css del layout base).
+    shared_static = (
+        Path(settings.user_static_dir)
+        if settings.user_static_dir
+        else Path(__file__).resolve().parents[2] / "Resources" / "Static"
+    )
     if shared_static.is_dir():
         app.mount("/static", StaticFiles(directory=str(shared_static)), name="static")
 

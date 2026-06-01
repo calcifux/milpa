@@ -63,7 +63,7 @@ def serve(
 # registran. Debe ir ANTES del loop para que ya estén en el registro cuando
 # `iter_cli_apps` arme los grupos.
 import_submodules("milpa.Core.Console.Commands")
-import_submodules("milpa.Console.Commands")
+import_submodules(settings.app_commands_package)
 
 # Monta cada grupo descubierto (módulos activos + generales) como sub-app de
 # Typer. Así el CLI no necesita saber qué commands existen: solo los enchufa.
