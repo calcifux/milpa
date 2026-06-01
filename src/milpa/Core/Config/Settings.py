@@ -35,8 +35,12 @@ class Settings(BaseSettings):
     # ignora las variables que no declara.
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # --- Infraestructura / secretos: OBLIGATORIOS (sin default) ---
-    database_url: str
+    # --- Infraestructura ---
+    # Default sqlite local: milpa arranca y se usa SIN configurar nada (zero-config, como
+    # Django en dev) → `milpa new`/`milpa serve` funcionan de inmediato. Siempre hay BD
+    # (milpa la requiere); el default solo evita el crash de primer arranque. En QA/prod
+    # pon tu motor real en .env: DATABASE_URL=postgresql+psycopg://... (o mysql+pymysql://...).
+    database_url: str = "sqlite:///./milpa.db"
 
     # --- Colas / broker-agnostic (ver docs/research/broker_agnostic_plan.md) ---
     # BROKER de Celery: CUALQUIER transporte (redis://, amqp:// RabbitMQ, sqs://, ...).

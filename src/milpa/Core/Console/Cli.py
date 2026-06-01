@@ -57,6 +57,27 @@ def serve(
     uvicorn.run("milpa.Core.Http.Http:create_app", factory=True, host=host, port=port, reload=reload)
 
 
+@app.command(name="new", help="Crea un proyecto nuevo de milpa desde una plantilla. (≈ laravel new).")
+def new(
+    name: str = typer.Argument(..., help="Nombre del proyecto (carpeta a crear en el dir actual)."),
+) -> None:
+    """Genera un proyecto LISTO para correr: app/ (con un módulo Hello de ejemplo), jornal,
+    .env y migrations/, con la config apuntando a TU código (MODULES_PACKAGE=app.Modules…)."""
+    from milpa.Core.Console.Scaffold import new_project
+
+    console = Console()
+    try:
+        dest = new_project(name)
+    except FileExistsError as error:
+        console.print(f"[red]✗[/red] {error}")
+        raise typer.Exit(code=1) from error
+    console.print(f"[green]✓[/green] Proyecto creado en [bold]{dest}[/bold] 🌽\n")
+    console.print("Siguientes pasos:")
+    console.print(f"  [cyan]cd {name}[/cyan]")
+    console.print("  [cyan]uv sync[/cyan]                 # instala milpa + dependencias")
+    console.print("  [cyan]python jornal serve[/cyan]     # http://127.0.0.1:8000  (prueba / y /hello)")
+
+
 # Dispara los decoradores de los commands del FRAMEWORK (Core) —p. ej. `queue
 # work` y `schedule work`— y de los commands GENERALES del proyecto (app-level).
 # El discovery importa cada archivo y, al importarse, sus `@console_command` se
