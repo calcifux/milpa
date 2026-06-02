@@ -2,7 +2,7 @@
 
 La capa de datos de milpa es **agnóstica del motor SQL**. Eliges la base con
 `DATABASE_URL` y el resto del código no cambia. Detrás está SQLAlchemy 2.0, con todo lo
-específico de cada dialecto **aislado** en `app/Core/Database/Session.py`.
+específico de cada dialecto **aislado** en `milpa/Core/Database/Session.py`.
 
 ## Elegir el motor: `DATABASE_URL`
 
@@ -79,7 +79,7 @@ uv run python jornal migrate rollback                        # revierte una (dow
 Cómo encaja con el resto del framework (sin duplicar config):
 
 - **Una sola fuente de conexión.** No hay `alembic.ini`: la config se arma en código
-  (`app/Core/Database/Migrations.py`) y `migrations/env.py` toma la BD de `DATABASE_URL`
+  (`milpa/Core/Database/Migrations.py`) y `migrations/env.py` toma la BD de `DATABASE_URL`
   (Settings) reusando el **engine** del framework. Cambias de motor sin tocar Alembic.
 - **Autogenerate desde tus modelos.** `env.py` llama a `import_all_models()` (el mismo
   discovery de la app) para poblar `Base.metadata`; el `make` compara esos modelos contra el

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "milpa"
-version = "0.2.0"
+version = "0.3.0"
 description = "Microframework Python estilo Laravel/Spring (FastAPI + Celery + SQLAlchemy + Typer) para construir monolitos modulares y migrar apps legacy."
 authors = [{ name = "@Calcifux (Carlos Guillermo Reyes Ramiro)" }]
 license = "MIT"
@@ -29,6 +29,7 @@ dependencies = [
     "python-multipart>=0.0.29",
     "redis>=6.4.0",
     "rich>=15.0.0",
+    "slowapi>=0.1.9",
     "sqlalchemy>=2.0.50",
     "sqlalchemy-easy-softdelete>=0.9.0",
     "typer>=0.26.2",
@@ -51,7 +52,7 @@ mssql = ["pyodbc>=5.2"]              # SQL Server (requiere el ODBC Driver del S
 # `milpa` = el kernel Typer del framework (antes solo existía el archivo suelto ./jornal,
 # que NO viaja dentro del paquete).
 [project.scripts]
-milpa = "milpa.Core.Console.Cli:app"
+milpa = "milpa.Core.Console.Cli:run"
 
 # Qué empaquetar en el wheel: el paquete importable vive en src/milpa.
 [tool.hatch.build.targets.wheel]
@@ -95,6 +96,12 @@ select = ["E", "F", "I", "UP", "B"]  # pycodestyle, pyflakes, isort, pyupgrade, 
 # E501: el largo de línea lo maneja el formatter.
 # B008: Depends(...) en defaults es EL patrón idiomático de FastAPI, no un bug.
 ignore = ["E501", "B008"]
+
+# Guardrail: TODO archivo debe declarar `from __future__ import annotations` (anotaciones como
+# string, PEP 563). Antes era convención no forzada y unos archivos de fase 1 la omitían; ahora
+# Ruff (guardrail #1) lo marca y autofixea — fail-fast, acorde al tenet "nunca falla en silencio".
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
 
 # ---------------------------------------------------------------------------
 # MyPy estricto: sin type hints completos, el PR no pasa. Guardrail #2.
