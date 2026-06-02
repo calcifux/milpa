@@ -247,7 +247,7 @@ uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run lin
 ## 8. Estructura
 
 ```
-src/milpa/           # EL PAQUETE instalable (`pip install milpa`)
+src/milpa/           # EL PAQUETE importable (instalación local; ver §2)
   Core/              # EL FRAMEWORK (genérico, reutilizable):
     Config/          #   settings (pydantic-settings, lee .env)
     Console/         #   kernel de consola (Typer) + comandos + borde de error
