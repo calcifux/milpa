@@ -22,21 +22,48 @@ Pensado para dos cosas: **arrancar servicios nuevos** sin re-decidir la arquitec
 cada vez, y **migrar apps legacy de Laravel** a Python conservando conceptos familiares
 (artisan, scheduler, mailables, soft-deletes, timestamps, Passport).
 
-- **API**: FastAPI (`app/Core/Http/Http.py:create_app`); descubre los módulos activos.
-- **Crons / tareas**: Celery worker + beat (`app/Core/CeleryApp/CeleryApp.py:celery_app`).
+- **API**: FastAPI (`src/milpa/Core/Http/Http.py:create_app`); descubre los módulos activos.
+- **Crons / tareas**: Celery worker + beat (`src/milpa/Core/CeleryApp/CeleryApp.py:celery_app`).
 - **CLI** (estilo `artisan`): `jornal` en la raíz (launcher fino del kernel de consola).
 - **Infra**: Docker **solo** levanta Redis + Mailpit (+ RabbitMQ opcional); la app
   corre en el host.
 
-> **El kernel (`app/Core`) es el framework.** Es genérico y reutilizable entre
+> **El kernel (`src/milpa/Core`) es el framework.** Es genérico y reutilizable entre
 > proyectos. Lo específico de cada app vive fuera de `Core`: en `app/Modules/*`,
 > `app/Models`, `app/Dictionaries`, `app/Resources` y el launcher `jornal`.
+
+## ✨ Características
+
+Todo es **OPT-IN** y auto-descubrible (no estorba si no lo usas):
+
+- **Patrones estilo milpa** — `Events`/`Observers` (1:N, transporte adaptativo: worker si hay
+  broker, si no síncrono), `Mediator` (command bus 1:1, transport-neutral HTTP+CLI) y `Pipeline`
+  (modelo cebolla). Patrones ya probados que un arquitecto puede sugerir, no impuestos.
+- **Background** — `@job` (on-demand, `.dispatch()`) y `@cron_task` (agendado, anti-overlap),
+  separados a propósito (job ≠ cron).
+- **API REST (estilo DRF)** — versionado (`@Controller(version="v1")`), rate limiting
+  (`@rate_limit`), filtering DSL (`FilterQueryModel`) + paginación por cursor, y negociación de
+  contenido (una ruta sirve JSON o HTML según `Accept`).
+- **Auth** — RBAC (roles) + ABAC (`Gate`/`@policy`), JWT (API) + sesión cookie/CSRF (browser,
+  estilo Sanctum); valida también tokens OAuth2 de Laravel Passport.
+- **Errores que NUNCA fallan en silencio** — todo error HTTP sale en **RFC 9457**
+  (`application/problem+json`); el CLI rinde errores limpios (sin traceback crudo ni fuga de
+  valores); mensajes accionables que apuntan al fix.
+- **Datos estilo Spring Data** — `Repository[Model, Id]` tipado, `@transactional`, serializers
+  Pydantic v2 (`computed_field`), soft-delete y timestamps automáticos; engine agnóstico del motor.
+- **HTTP** — controllers class-based (`@Controller`/`@Get`/`@Post`), Jinja2 + HTMX/Alpine (sin
+  Inertia) · **i18n** (YAML) · **mail** (`Mailable` + drivers smtp/log/null + plantillas firmadas).
+
+> Cada feature tiene su página en el [manual](documentation/README.md) y se demuestra ejecutable
+> en el **módulo Demo** (contrastando la *forma tradicional* vs *estilo milpa*).
 
 ## 📖 Documentación
 
 La guía completa estilo Laravel está en **[`documentation/`](documentation/README.md)**:
-instalación, configuración, ciclo de vida HTTP, módulos, consola, correo, colas, cron,
-i18n, autenticación y base de datos (modelos, repositorios y transacciones).
+instalación, configuración, ciclo de vida HTTP, módulos, consola, correo, colas, cron, jobs,
+i18n, autenticación, base de datos (modelos, repositorios, filtrado/paginación), los **patrones
+estilo milpa** (eventos/observers, mediator, pipeline), la **API REST** (versionado, rate limiting,
+negociación de contenido, serializadores) y los **errores RFC 9457**.
 
 ---
 
@@ -153,11 +180,11 @@ uv run python jornal schedule run     # despacha los crons del minuto (lo dispar
 uv run python jornal list             # ve todos los comandos disponibles
 ```
 
-`serve` arranca uvicorn con la app factory del kernel (`app.Core.Http.Http:create_app`);
+`serve` arranca uvicorn con la app factory del kernel (`milpa.Core.Http.Http:create_app`);
 por default escucha en `127.0.0.1:$APP_PORT` con `--reload`.
 
 > **Beat: una sola instancia** (≈ `onOneServer()` de Laravel). Varios beats = crons
-> duplicados. Los crons se declaran con `@cron_task(...)` (`app/Core/Cron`): gate por
+> duplicados. Los crons se declaran con `@cron_task(...)` (`src/milpa/Core/Cron`): gate por
 > `APP_ENV` (`environments=[...]`), lock en Redis (`without_overlapping=True`) y logs
 > por cron con rotación (`output="<nombre>"`).
 
@@ -166,8 +193,9 @@ por default escucha en `127.0.0.1:$APP_PORT` con `--reload`.
 ## 🎮 Demo corrible
 
 Un demo completo (usuarios + notas) que ejercita TODO el stack: **auth dual** (JWT API + sesión
-cookie/CSRF), **RBAC + ABAC**, **routing class-based** (`@Controller`/`@Get`) y UI **HTMX + Alpine +
-Pico.css**. Sobre **SQLite**, sin levantar infraestructura:
+cookie/CSRF), **RBAC + ABAC**, **routing class-based** (`@Controller`/`@Get`), los **patrones
+estilo milpa** (eventos→correos automáticos, mediator, pipeline, `@job`, `@cron_task`) y UI
+**HTMX + Alpine + Pico.css**. Sobre **SQLite**, sin levantar infraestructura:
 
 ```bash
 # 1) Config mínima en .env (sqlite + secretos)
@@ -219,27 +247,35 @@ uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run lin
 ## 8. Estructura
 
 ```
-app/
-  Core/            # EL FRAMEWORK (genérico, reutilizable):
-    Config/        #   settings (pydantic-settings, lee .env)
-    Console/       #   kernel de consola (Typer) + comandos base
-    CeleryApp/     #   app de Celery + dispatch (broker-agnostic)
-    Cron/          #   @cron_task + scheduler estilo Laravel
-    Database/      #   Base, Session (engine agnóstico), Repository, @transactional, mixins
-    Http/          #   create_app() FastAPI + middlewares + locale boundary
-    Mail/          #   Mailable + Mailer (smtp/log/null) + TemplateEngine
-    Translate/     #   i18n (i18nice, YAML)
-    View/          #   motor de templates (Jinja2)
-  Models/          # modelos SQLAlchemy compartidos (auto-discovery; vacío en el base)
-  Dictionaries/    # constantes de dominio (auto-discovery por submódulo)
+src/milpa/           # EL PAQUETE instalable (`pip install milpa`)
+  Core/              # EL FRAMEWORK (genérico, reutilizable):
+    Config/          #   settings (pydantic-settings, lee .env)
+    Console/         #   kernel de consola (Typer) + comandos + borde de error
+    CeleryApp/       #   app de Celery + dispatch (broker-agnostic)
+    Jobs/            #   @job (background on-demand) + .dispatch()
+    Cron/            #   @cron_task + scheduler estilo Laravel
+    Events/          #   Events/Observers (dispatch 1:N, broker-adaptive)
+    Mediator/        #   command bus 1:1 (@handles / send)
+    Pipeline/        #   pipeline modelo cebolla (estilo Laravel)
+    Database/        #   Repository, @transactional, Filtering, mixins (engine agnóstico)
+    Auth/            #   RBAC + ABAC (Gate/@policy), JWT + sesión, Passport
+    Errors/          #   DomainError + RFC 9457 (problem+json)
+    Http/            #   create_app() FastAPI + @Controller + RateLimit + middlewares
+    Mail/            #   Mailable + Mailer (smtp/log/null) + TemplateEngine
+    Translate/       #   i18n (i18nice, YAML)
+    View/            #   templates (Jinja2) + negotiate()
+  Models/            # modelos SQLAlchemy compartidos (auto-discovery)
+  Dictionaries/      # constantes de dominio (auto-discovery por submódulo)
   Modules/
-    Example/       # módulo de ejemplo: Http, Jobs, Mail, Resources
-  Resources/       # assets/lang/views compartidos del proyecto
-Tests/             # tests unitarios (espeja app/ 1:1, sin BD)
-docs/              # ADRs y notas de diseño
-secrets/           # llaves locales (contenido ignorado por git)
-jornal             # entrypoint de consola (artisan) en la raíz
-docker-compose.yml # SOLO infra: redis + mailpit (+ rabbitmq opcional)
+    Demo/            # módulo de referencia: users/notes + TODOS los patrones, ejecutable
+  Resources/         # assets/lang/views compartidos
+Tests/               # tests unitarios (espeja src/milpa/ 1:1, sin BD)
+migrations/          # revisiones Alembic (motor-agnóstico)
+documentation/       # manual de usuario (mkdocs)
+docs/                # ADRs y notas de diseño
+secrets/             # llaves locales (contenido ignorado por git)
+jornal               # entrypoint de consola (artisan) en la raíz
+docker-compose.yml   # SOLO infra: redis + mailpit (+ rabbitmq opcional)
 ```
 
 ---
@@ -267,9 +303,10 @@ desenredar imports cruzados.
 
 ## 10. Agregar un módulo
 
-1. Crea `app/Modules/<Nombre>/` (mira `Modules/Example` como plantilla).
-2. Pon dentro lo que necesite: `Http/` (rutas), `Jobs/` (tareas), `Mail/`, `Services/`,
-   `Repositories/`, `Resources/` (lang/views namespaced), `Console/Commands/`.
+1. Crea `app/Modules/<Nombre>/` (mira `Modules/Demo` como referencia viva).
+2. Pon dentro lo que necesite: `Http/` (rutas), `Services/`, `Repositories/`, `Jobs/` (@job),
+   `Crons/` (@cron_task), `Observers/` (eventos), `Handlers/` (mediator), `Pipes/` (pipeline),
+   `Policies/` (ABAC), `Mail/`, `Resources/` (lang/views namespaced), `Console/Commands/`.
 3. Actívalo por configuración. La API y el beat lo **descubren solos**; el
    `import-linter` garantiza que no se enrede con otros módulos.
 
