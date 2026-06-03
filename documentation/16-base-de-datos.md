@@ -9,7 +9,7 @@ específico de cada dialecto **aislado** en `milpa/Core/Database/Session.py`.
 El prefijo de la URL determina el dialecto (y el driver):
 
 ```
-mysql+pymysql://user:pass@host:3306/db          # MySQL / MariaDB (driver en el core)
+mysql+pymysql://user:pass@host:3306/db          # MySQL / MariaDB (uv sync --extra mysql)
 postgresql+psycopg://user:pass@host:5432/db     # PostgreSQL   (uv sync --extra postgres)
 oracle+oracledb://user:pass@host:1521/?service_name=db   # Oracle (--extra oracle)
 mssql+pyodbc://user:pass@host/db?driver=ODBC+Driver+18   # SQL Server (--extra mssql)
