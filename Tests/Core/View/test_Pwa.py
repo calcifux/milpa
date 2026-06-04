@@ -43,8 +43,11 @@ def test_webmanifest_arma_start_url_y_scope_con_el_prefijo_del_deploy(
 
     assert response.media_type == "application/manifest+json"
     manifest = json.loads(bytes(response.body).decode("utf-8"))
-    assert manifest["start_url"] == "/nombre-reverse/spa"
-    assert manifest["scope"] == "/nombre-reverse/spa/"  # start_url ⊂ scope (MDN)
+    # Barra final en AMBOS: el in-scope del W3C compara prefijos de ruta — sin la
+    # barra, '/spa' NO empieza con '/spa/' y start_url quedaría FUERA de scope.
+    assert manifest["start_url"] == "/nombre-reverse/spa/"
+    assert manifest["scope"] == "/nombre-reverse/spa/"
+    assert manifest["start_url"].startswith(manifest["scope"])  # start_url ⊂ scope (W3C/MDN)
     assert manifest["theme_color"] == "#FF6B1A"
 
 
@@ -66,6 +69,27 @@ def test_webmanifest_descubre_iconos_por_convencion(tmp_path: Path, monkeypatch:
     assert icons[0]["src"] == "/vite/icons/icon-192.png"  # vite_asset: hereda ASSET_URL/namespacing
     assert icons[-1]["purpose"] == "maskable"  # los maskable van al final, con purpose
     assert "purpose" not in icons[0]
+
+
+def test_webmanifest_en_dev_descubre_iconos_de_la_fuente(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DEV sin build (hot-file presente, public/<app> inexistente): los iconos salen
+    de la FUENTE del surco y sus URLs del dev server — no `icons: []` silencioso."""
+    surco = tmp_path / "surcos" / "demo"
+    (surco / "public" / "icons").mkdir(parents=True)
+    (surco / "public" / "icons" / "icon-192.png").write_bytes(b"\x89PNG\r\n\x1a\nfake")
+    (surco / "hot").write_text("http://localhost:5173", encoding="utf-8")
+    monkeypatch.setattr(settings, "vite_dist_dir", "")
+    monkeypatch.setattr(settings, "vite_public_dir", str(tmp_path / "public"))  # sin build
+    monkeypatch.setattr(settings, "vite_apps_dir", str(tmp_path / "surcos"))
+
+    manifest = json.loads(
+        bytes(
+            Pwa.webmanifest(_request(), prefix="/spa", app="demo", theme_color="#fff", background_color="#000").body
+        ).decode("utf-8")
+    )
+
+    assert [icon["sizes"] for icon in manifest["icons"]] == ["192x192"]
+    assert manifest["icons"][0]["src"] == "http://localhost:5173/icons/icon-192.png"
 
 
 def test_webmanifest_extra_sobrescribe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,13 +1,15 @@
 import {useEffect, useState} from 'react';
 
 // fetch same-origin: la página la sirve milpa, así que /status pega a milpa
-// directo — sin CORS, en dev y en prod. Ese es el punto del modelo.
+// directo — sin CORS, en dev y en prod. Ese es el punto del modelo. BASE_PATH
+// (runtime, window.__ENV) cubre el deploy tras reverse proxy bajo sub-ruta,
+// igual que el surco tablero y el registro del SW.
 export default function Estado() {
     const [status, setStatus] = useState(null);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetch('/status')
+        fetch(`${window.__ENV?.BASE_PATH ?? ''}/status`)
             .then((response) => response.json())
             .then(setStatus)
             .catch((fetchError) => setError(String(fetchError)));

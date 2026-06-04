@@ -84,7 +84,9 @@ def _env_script(context: Context) -> Markup:
     primero que los modulos (los <script type="module"> son deferred por spec), asi
     window.__ENV ya existe cuando el frontend monta."""
     env_json = context.get("env_json")
-    if env_json is None:
+    # `not` (no `is None`): un env_json="" pasaría el guard y emitiría
+    # `window.__ENV = ;` — SyntaxError en el navegador en vez de instrucción clara.
+    if not env_json:
         raise RuntimeError(
             "env_script() necesita `env_json` en el contexto del template: renderiza el shell con "
             "view('tu/shell', shell_context(request)) — Core/Http/Shell."

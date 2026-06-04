@@ -125,11 +125,14 @@ def create_app() -> FastAPI:
     # dist directo. Sin nada detectado no se monta (la feature muere en paz). Los
     # <link>/<script> hasheados los emite el helper vite() en el template Jinja.
     assets_root = settings.vite_assets_url.rstrip("/")
-    if settings.vite_dist_dir:
+    # VITE_ASSETS_URL="/" (o vacío) dejaría assets_root="" — y mount("") en Starlette
+    # es un CATCH-ALL en la raíz: taparía /status y degradaría los errores RFC 9457
+    # a 404 planos de estático. Los assets siempre viven bajo su propio prefijo.
+    if assets_root and settings.vite_dist_dir:
         explicit_dist = Path(settings.vite_dist_dir)
         if explicit_dist.is_dir():
             app.mount(assets_root, StaticFiles(directory=str(explicit_dist)), name="vite")
-    else:
+    elif assets_root:
         # El guard de vacío importa: Path("") es Path(".") y SIEMPRE is_dir() — sin él,
         # VITE_PUBLIC_DIR= montaría la RAÍZ del proyecto (.env, secrets/, .git/) en
         # /vite. Vacío = apagado, el mismo idioma que VITE_DIST_DIR/VITE_HOT_FILE.

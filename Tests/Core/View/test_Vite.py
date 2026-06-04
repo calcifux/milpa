@@ -286,3 +286,41 @@ def test_template_renderiza_vite_sin_escapar(tmp_path: Path, monkeypatch: pytest
 
     assert '<script type="module" src="/vite/assets/main-AbC123.js"></script>' in html
     assert "&lt;" not in html
+
+
+def test_dev_vite_asset_sale_del_dev_server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """vite_asset ramifica dev/prod IGUAL que vite(): en dev el public/ del surco lo
+    sirve el dev server — la URL del mount (sin build) sería un 404 silencioso."""
+    _setup_build(tmp_path, monkeypatch)
+    (tmp_path / "hot").write_text("http://localhost:5173", encoding="utf-8")
+
+    assert Vite.vite_asset("icons/icon-192.png") == "http://localhost:5173/icons/icon-192.png"
+
+
+def test_prod_css_compartido_no_se_duplica_entre_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Multi-entry: el CSS de un chunk compartido por dos entries se emite UNA vez
+    (seen_css es del render completo, no por entry — como el @vite de Laravel)."""
+    manifest = {
+        "src/a.jsx": {"file": "assets/a-1.js", "isEntry": True, "imports": ["_shared-X.js"]},
+        "src/b.jsx": {"file": "assets/b-1.js", "isEntry": True, "imports": ["_shared-X.js"]},
+        "_shared-X.js": {"file": "assets/shared-X.js", "css": ["assets/shared-X.css"]},
+    }
+    _setup_build(tmp_path, monkeypatch, manifest=manifest)
+
+    html = str(Vite.vite("src/a.jsx", "src/b.jsx"))
+
+    assert html.count("assets/shared-X.css") == 1
+
+
+def test_resolve_apps_con_dirs_vacios_no_escanea_el_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """VITE_PUBLIC_DIR=/VITE_APPS_DIR= (vacío = apagado): jamás escanear el cwd —
+    Path('') es Path('.') y sin guard registraría apps fantasma del proyecto."""
+    monkeypatch.chdir(tmp_path)
+    fantasma = tmp_path / "fantasma" / ".vite"
+    fantasma.mkdir(parents=True)
+    (fantasma / "manifest.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(settings, "vite_dist_dir", "")
+    monkeypatch.setattr(settings, "vite_public_dir", "")
+    monkeypatch.setattr(settings, "vite_apps_dir", "")
+
+    assert Vite.resolve_apps() == {}

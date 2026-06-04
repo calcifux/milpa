@@ -146,7 +146,8 @@ namespacean:
 ```
 
 → `/vite/demo-spa/icons/apple-touch-icon.png`. Hereda `ASSET_URL` solo (es la misma base
-que `vite()`).
+que `vite()`) y **ramifica dev/prod igual que `vite()`**: con el dev server corriendo la URL
+sale de ahí (el `public/` del surco lo sirve Vite en su raíz; el build puede no existir aún).
 
 ## Deploy bajo sub-ruta o CDN
 

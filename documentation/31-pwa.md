@@ -61,7 +61,7 @@ estático del frontend): `start_url` y `scope` llevan el **prefijo real del depl
 | Parámetro | Para qué |
 |-----------|----------|
 | `request` | De ahí sale el `root_path` (prefijo del deploy) para `start_url`/`scope`. |
-| `prefix` | Dónde vive el surco (p. ej. `"/spa"`). Compone `start_url` (`<base><prefix>`) y `scope` (`<base><prefix>/`). |
+| `prefix` | Dónde vive el surco (p. ej. `"/spa"`). Compone `start_url` y `scope` (ambos `<base><prefix>/` — con barra final: el in-scope del W3C compara prefijos de ruta). |
 | `theme_color` / `background_color` | Colores de la PWA (obligatorios). |
 | `app` | Qué surco — desambigua en multi-app (los iconos salen de su build). |
 | `name` / `short_name` | Nombres; si los omites, se derivan de `app` y `APP_NAME`. |

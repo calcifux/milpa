@@ -16,8 +16,8 @@ controller —
 del deploy (root_path; bajo sub-ruta de proxy salen correctos sin rebuild) e iconos
 AUTO-DESCUBIERTOS del build por convención: `icons/icon-<size>.png` y
 `icons/icon-<size>-maskable.png` (archivo APARTE con safe-zone — Android recorta los
-maskable; reusar el normal pierde las orillas). Las URLs van por `vite_asset()`, así
-que heredan `ASSET_URL` (CDN/sub-ruta) solas.
+maskable; reusar el normal pierde las orillas). Las URLs usan la misma base que
+`vite_asset()` (dev server en DEV; con `ASSET_URL` heredado en PROD).
 """
 
 from __future__ import annotations
@@ -33,21 +33,30 @@ from starlette.requests import Request
 from milpa.Core.Config import settings
 from milpa.Core.Errors import ResourceNotFoundError
 
-# Helpers internos del hermano Vite (misma capa Core/View): resolución de la app y
-# namespacing de assets. _app_dist truena con instrucción si no hay apps/ambigüedad.
-from milpa.Core.View.Vite import _app_dist, vite_asset
+# Helpers internos del hermano Vite (misma capa Core/View): resolución de la app,
+# namespacing de assets y detección de dev. _app_dist truena con instrucción si no
+# hay apps o hay ambigüedad.
+from milpa.Core.View.Vite import _app_dist, _assets_base, _dev_server_url
 
 # icons/icon-192.png · icons/icon-512-maskable.png → (192, maskable?)
 _ICON_RE = re.compile(r"^icon-(\d+)(-maskable)?\.png$")
 
 
-def _discover_icons(app: str | None, dist_dir: Path) -> list[dict[str, str]]:
-    """Iconos del manifest por CONVENCIÓN, leídos del build (`<dist>/icons/`):
-    los normales primero, luego los maskable (con su `purpose`). Sin carpeta o sin
-    matches → lista vacía (un manifest sin iconos es legal; el navegador lo avisa)."""
+def _discover_icons(app_name: str, dist_dir: Path) -> list[dict[str, str]]:
+    """Iconos del manifest por CONVENCIÓN: en PROD se leen del build (`<dist>/icons/`);
+    en DEV sin build todavía, de la FUENTE del surco (`<apps_dir>/<app>/public/icons/`,
+    que su dev server sirve desde la raíz — sin esto el manifest saldría con
+    `icons: []` durante todo el flujo dev). Los normales primero, luego los maskable
+    (con su `purpose`). Sin carpeta o sin matches → lista vacía (un manifest sin
+    iconos es legal; el navegador lo avisa). La base de las URLs se resuelve UNA vez
+    — no un re-escaneo de apps por icono."""
+    dev_url = _dev_server_url(app_name, dist_dir)
     icons_dir = dist_dir / "icons"
+    if not icons_dir.is_dir() and app_name and dev_url:
+        icons_dir = Path(settings.vite_apps_dir) / app_name / "public" / "icons"
     if not icons_dir.is_dir():
         return []
+    base = dev_url or _assets_base(app_name)
     icons: list[dict[str, str]] = []
     for icon_file in sorted(icons_dir.iterdir(), key=lambda f: (("-maskable" in f.name), f.name)):
         match = _ICON_RE.match(icon_file.name)
@@ -55,7 +64,7 @@ def _discover_icons(app: str | None, dist_dir: Path) -> list[dict[str, str]]:
             continue
         size, maskable = match.group(1), match.group(2)
         entry = {
-            "src": vite_asset(f"icons/{icon_file.name}", app=app),
+            "src": f"{base}/icons/{icon_file.name}",
             "sizes": f"{size}x{size}",
             "type": "image/png",
         }
@@ -92,12 +101,16 @@ def webmanifest(
         "name": name or (f"{app_name} · {settings.app_name}" if app_name else settings.app_name),
         "short_name": short_name or label,
         "description": description,
-        "start_url": f"{base}{prefix}",
+        # Barra final TAMBIÉN en start_url: el algoritmo in-scope del W3C compara
+        # prefijos de RUTA, y '/spa' NO empieza con '/spa/' — sin la barra, start_url
+        # queda fuera de scope y el navegador DESCARTA el scope (cayendo a uno más
+        # ancho que ya no acota la PWA a su prefijo).
+        "start_url": f"{base}{prefix}/",
         "scope": f"{base}{prefix}/",
         "display": display,
         "background_color": background_color,
         "theme_color": theme_color,
-        "icons": _discover_icons(app, dist_dir),
+        "icons": _discover_icons(app_name, dist_dir),
         **(extra or {}),
     }
     return Response(json.dumps(manifest, ensure_ascii=False), media_type="application/manifest+json")

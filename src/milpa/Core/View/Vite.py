@@ -44,8 +44,10 @@ from milpa.Core.Config import settings
 # raíz de VITE_ASSETS_URL, sin sub-ruta por app.
 _EXPLICIT = ""
 
-# Cache del manifest por ruta, invalidado por mtime: se relee solo si hubo rebuild.
-_manifest_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+# Cache del manifest por ruta, invalidado por (mtime_ns, size): se relee solo si
+# hubo rebuild. NO basta st_mtime (float en segundos): en filesystems con mtime de
+# resolución gruesa, dos builds dentro del mismo segundo serían invisibles.
+_manifest_cache: dict[str, tuple[tuple[int, int], dict[str, Any]]] = {}
 
 
 def resolve_apps() -> dict[str, Path]:
@@ -62,13 +64,16 @@ def resolve_apps() -> dict[str, Path]:
     if settings.vite_dist_dir:
         return {_EXPLICIT: Path(settings.vite_dist_dir)}
     apps: dict[str, Path] = {}
+    # Guard de vacío en AMBOS roots: Path("") es Path(".") y siempre is_dir() — sin
+    # él, VITE_PUBLIC_DIR=/VITE_APPS_DIR= escanearían el cwd del proyecto (apps
+    # fantasma). Vacío = apagado, el mismo idioma que el mount en Core/Http.
     public_root = Path(settings.vite_public_dir)
-    if public_root.is_dir():
+    if settings.vite_public_dir and public_root.is_dir():
         for candidate in sorted(public_root.iterdir()):
             if (candidate / ".vite" / "manifest.json").is_file():
                 apps[candidate.name] = candidate
     apps_root = Path(settings.vite_apps_dir)
-    if apps_root.is_dir():
+    if settings.vite_apps_dir and apps_root.is_dir():
         for candidate in sorted(apps_root.iterdir()):
             if candidate.name not in apps and (candidate / "hot").is_file():
                 apps[candidate.name] = public_root / candidate.name
@@ -137,19 +142,21 @@ def _load_manifest(dist_dir: Path) -> dict[str, Any]:
             f"No existe el manifest de Vite en {manifest_path}. Corre `npm run build` en el "
             "frontend (modo prod) o levanta `npm run dev` (modo dev vía hot-file)."
         )
-    mtime = manifest_path.stat().st_mtime
+    stat = manifest_path.stat()
+    fingerprint = (stat.st_mtime_ns, stat.st_size)
     cached = _manifest_cache.get(str(manifest_path))
-    if cached is not None and cached[0] == mtime:
+    if cached is not None and cached[0] == fingerprint:
         return cached[1]
     manifest = cast("dict[str, Any]", json.loads(manifest_path.read_text(encoding="utf-8")))
-    _manifest_cache[str(manifest_path)] = (mtime, manifest)
+    _manifest_cache[str(manifest_path)] = (fingerprint, manifest)
     return manifest
 
 
-def _entry_tags(manifest: dict[str, Any], entry: str, base: str) -> list[str]:
+def _entry_tags(manifest: dict[str, Any], entry: str, base: str, seen_css: set[str]) -> list[str]:
     """Tags de UN entry en prod, en el orden que documenta vite.dev/backend-integration:
-    el CSS del chunk, luego el CSS de sus `imports` estáticos (recursivo, dedupeado),
-    y al final el `<script type="module">` del entry."""
+    el CSS del chunk, luego el CSS de sus `imports` estáticos (recursivo), y al final
+    el `<script type="module">` del entry. `seen_css` lo comparte el caller entre
+    entries: el CSS de un chunk compartido se emite UNA sola vez (como `@vite`)."""
     chunk = manifest.get(entry)
     if chunk is None:
         available = ", ".join(sorted(name for name, data in manifest.items() if data.get("isEntry"))) or "ninguno"
@@ -158,7 +165,6 @@ def _entry_tags(manifest: dict[str, Any], entry: str, base: str) -> list[str]:
             "Revisa build.rollupOptions.input en el vite.config del frontend."
         )
     tags: list[str] = []
-    seen_css: set[str] = set()
 
     def collect_css(name: str, visited: set[str]) -> None:
         if name in visited:
@@ -196,16 +202,24 @@ def vite(*entries: str, app: str | None = None) -> Markup:
     manifest = _load_manifest(dist_dir)
     base = _assets_base(app_name)
     prod_tags: list[str] = []
+    seen_css: set[str] = set()
     for entry in entries:
-        prod_tags.extend(_entry_tags(manifest, entry, base))
+        prod_tags.extend(_entry_tags(manifest, entry, base, seen_css))
     return Markup("\n".join(prod_tags))
 
 
 def vite_asset(path: str, app: str | None = None) -> str:
     """URL pública de un archivo de `public/` de la app (iconos, manifest.webmanifest…):
     esos NO pasan por el manifest de Vite (van sin hash) — solo se namespacean.
-    `{{ vite_asset('icons/icon-192.png') }}` → "/vite/demo-spa/icons/icon-192.png"."""
-    app_name, _dist = _app_dist(app)
+    `{{ vite_asset('icons/icon-192.png') }}` → "/vite/demo-spa/icons/icon-192.png".
+
+    Ramifica dev/prod IGUAL que vite(): en DEV el public/ del surco lo sirve su dev
+    server desde la raíz (el build — y el mount de milpa — pueden no existir aún);
+    sin la rama, en dev saldría la URL del mount → 404 silencioso."""
+    app_name, dist_dir = _app_dist(app)
+    dev_url = _dev_server_url(app_name, dist_dir)
+    if dev_url:
+        return f"{dev_url}/{path.lstrip('/')}"
     return f"{_assets_base(app_name)}/{path.lstrip('/')}"
 
 
