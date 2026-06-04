@@ -7,6 +7,145 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-04
+
+Frontend a la milpa: asset-pipeline **Vite** estilo `laravel-vite`, **microfrontends por vertical**
+(los *surcos*) que el backend sirve **same-origin** (cero CORS), **PWA** sin boilerplate y
+**runtime-config** del shell (`window.__ENV`). Todo OPT-IN: sin surcos detectados nada se monta.
+
+Forma tradicional vs estilo milpa: la forma tradicional corre cada SPA en su propio servidor y
+abre CORS con la config congelada en *build-time*; estilo milpa el backend es dueño del shell HTML
+(Jinja) y Vite del pipeline de assets — mismo origen, e inyecta lo que cambia por deploy en runtime.
+
+### Added
+
+#### Asset-pipeline Vite (estilo milpa)
+
+- **Helpers Jinja `vite()` / `vite_asset()` / `vite_react_refresh()`** (`Core/View/Vite.py`) — la
+  directiva `@vite` de milpa. En **DEV** inyecta el cliente HMR desde el dev server vía el *hot-file*
+  por app; en **PROD** lee `dist/.vite/manifest.json` y emite los `<link>`/`<script>` hasheados.
+  Sin apps detectadas no se monta nada y `vite()` truena con instrucción clara (nunca falla en
+  silencio).
+- **Microfrontends por vertical (los *surcos*)** — cada app Vite vive en `surcos/<app>` con la
+  tecnología que quiera (React/Vue/Svelte/vanilla; Vite las cubre todas). **Auto-detección por
+  convención**: una carpeta es app si tiene `hot` (dev corriendo) o `dist/.vite/manifest.json`
+  (build hecho). En multi-app, `vite('src/main.jsx', app='tienda')` desambigua — y los equipos
+  pueden mezclar dev (HMR) y build simultáneamente sin estorbarse.
+- **PWA sin boilerplate** (`Core/View/Pwa.py`) — `Pwa.webmanifest(request, ...)` y
+  `Pwa.service_worker(request, ...)` como *one-liners* de controller. El manifest se arma **EN
+  RUNTIME** (`start_url`/`scope` con el prefijo real del deploy, así salen bien tras un reverse
+  proxy bajo sub-ruta **sin rebuild**); los iconos se **auto-descubren** del build por convención
+  (`icons/icon-<size>.png` y `icons/icon-<size>-maskable.png`); el SW se sirve con
+  `Cache-Control: no-cache` (un SW cacheado = updates que nunca llegan).
+- **Runtime-config del shell** (`Core/Http/Shell.py`) — `shell_context(request)` inyecta
+  `window.__ENV` (`APP_NAME`/`APP_ENV`/`BASE_PATH` + extras del surco): lo que `NEXT_PUBLIC_*`/
+  `VITE_*` **no pueden** dar sin rebuild. Exporta `base_path`, `runtime_env_json` y `shell_context`
+  desde `Core/Http`. `BASE_PATH` (el `root_path` ASGI) es la mitad **runtime** del soporte
+  reverse-proxy bajo sub-ruta; `ASSET_URL` es la mitad **build-time**.
+- **Global Jinja `env_script()`** (`Core/View/TemplateEngine.py`) — emite el
+  `<script>window.__ENV = {...}</script>` completo y seguro (el JSON viene con `<` escapado desde
+  el Core, así un valor raro no puede cerrar el tag) sin copiar el `| safe` en cada template.
+
+#### Frontend (paquete npm + scaffolder)
+
+- **Plugin npm `vite-plugin-milpa` `^0.1.2`** (publicado) — deriva el `base` de la carpeta del
+  surco, escribe el manifest y el *hot-file* que leen los helpers Jinja, y trae un **file-router**
+  de runtime (`vite-plugin-milpa/router`) que es el espejo del auto-montado de `Modules/<X>/Http`
+  del backend. `0.1.1` agregó chunks con nombre legible; `0.1.2` corrige el modo dev con
+  PWA (el middleware de serwist tronaba en cada request del dev server).
+- **`milpa new --demo` materializa también el frontend** (`_skeleton_demo`): los surcos +
+  `package.json` raíz pnpm + `pnpm-workspace.yaml` (con el override a `link:` comentado) + `.nvmrc`.
+  Regla por sufijo: `.tmpl` = texto renderizado, el resto = bytes intactos (los PNG de la PWA
+  viajan sin corromperse).
+- **Surcos de ejemplo** — `demo-spa` (React 19 + react-router 7 con file-router por
+  `import.meta.glob` + PWA Serwist offline-first: precache del shell, `NetworkOnly` para `/api`,
+  fallback offline al shell) y `tablero` (vanilla, sin PWA). La marca pública del demo es
+  **StackCraft**.
+- **Demo del backend** — `SpaController` sirve el shell React+PWA en `/spa` con catch-all
+  SPA-fallback acotado al prefijo (no se come `/api`), y el manifest y el `sw.js` como *one-liners*;
+  `TableroController` es el surco vanilla. Vistas `spa.html.j2` / `tablero.html.j2`. La convención
+  es del framework, no de la tecnología del frontend.
+
+### Changed
+
+- **`asset()` ahora antepone `ASSET_URL`** (`Core/View/TemplateEngine.py`) — para deploy bajo
+  sub-ruta de reverse proxy (`ASSET_URL=/nombre-reverse`) o CDN (`https://cdn.x.com`). Igual lo
+  honran `vite()` / `vite_asset()`. **DEBE coincidir** con el `ASSET_URL` con el que se buildea el
+  frontend (`vite-plugin-milpa` lee la **misma** env var en build).
+- **Mount del `public/` del proyecto en `VITE_ASSETS_URL`** (`Core/Http/Http.py`) — cada surco
+  buildea a `public/<app>` y milpa lo sirve completo en **un solo** mount (como el `public/` de
+  Laravel), todo same-origin. Modo una-sola-app con `VITE_DIST_DIR` explícito.
+- **Nuevos settings de Vite** (`Core/Config/Settings.py`) — `ASSET_URL` (prefijo público de
+  `asset()`/`vite()`), `VITE_APPS_DIR` (default `surcos`), `VITE_PUBLIC_DIR` (`public`),
+  `VITE_DIST_DIR` (`""`), `VITE_HOT_FILE` (`""`), `VITE_ASSETS_URL` (`/vite`).
+- **Workspace npm → pnpm** (`pnpm-workspace.yaml`) — `node_modules` **por paquete** (sin *phantom
+  deps*: la dep no declarada truena en dev, no al extraer el surco a su repo), `allowBuilds`
+  explícito (esbuild), y el plugin sale por default del **registro**; el override
+  `link:../vite-plugin-milpa` queda **comentado** como camino contributor.
+- **Piso del skeleton: `milpa-core>=0.4.0`** — el proyecto generado depende de `milpa-core` en PyPI
+  (el import y el comando siguen siendo `milpa`); el scaffolder ya escribe el correo en el `.env`
+  generado y MySQL queda como extra de `milpa-core`.
+
+### Docs
+
+- `.env.example` (repo y skeleton) documenta la sección **Vite / ASSET_URL** completa: la
+  auto-detección en `VITE_APPS_DIR`, dónde caen los builds (`public/<surco>`), y la regla de oro de
+  que `ASSET_URL` debe ser el **mismo** en backend y build del frontend.
+
+### Notas
+
+- Frontend **OPT-IN**: requiere Node `>=22.13` (`.nvmrc` = 22; pnpm 11 usa `node:sqlite`) y **pnpm 11**
+  (`packageManager`/volta). Comandos: `pnpm install` en la raíz · `pnpm --filter <surco> dev` ·
+  `pnpm -r build`. Sin tocar nada de esto, milpa sigue sirviendo lo de siempre.
+
+## [0.3.1] - 2026-06-02
+
+Arreglo para que `milpa new --demo` corra **de fábrica** (OOTB) + ajustes de docs.
+
+### Fixed
+
+- **`milpa new --demo` funciona OOTB** — el proyecto generado traía Faker (factories/seeders del
+  demo) fuera del *dev-group*; ahora va en el grupo `dev` del skeleton, así un `milpa new --demo`
+  recién clonado siembra sin instalar nada a mano.
+
+### Docs
+
+- README actualizado a **v0.3.0** (características, estructura `src/milpa`, módulo Demo) y aclaración
+  de la **instalación local** (todavía no en PyPI).
+
+## [0.3.0] - 2026-06-02
+
+milpa pasa de *repo que se clona* a **paquete instalable** + un scaffolder `milpa new` que genera
+tu proyecto. Fases A–C del *packaging*: extraer el framework a `src/milpa`, que el Core resuelva el
+código del USUARIO desde Settings, y embeber un skeleton que `milpa new` materializa.
+
+### Added
+
+#### Packaging + scaffolder
+
+- **Framework extraído a paquete instalable** — el código del Core/Modules vive en `src/milpa` y se
+  instala como paquete; ya no se asume el layout de un repo clonado.
+- **El Core resuelve el código del USUARIO desde `Settings`** (Fase B) — módulos, modelos, recursos
+  y migraciones del proyecto se leen de config (`MODULES_PACKAGE`, `MODELS_PACKAGE`,
+  `USER_VIEWS_DIR`, `MIGRATIONS_DIR`, …), no contando carpetas desde el propio paquete (eso, en
+  *site-packages*, apuntaba a otro lado).
+- **Scaffolder `milpa new` + skeleton embebido** (Fase C) — genera un proyecto nuevo a partir de un
+  skeleton que viaja DENTRO del paquete (archivos `.tmpl` que se renderizan sustituyendo el nombre
+  del proyecto).
+
+#### Consola
+
+- **`make:*` escribe en el `app/` del USUARIO** (`settings.app_dir`), no en el paquete instalado —
+  tus controllers/modelos/módulos generados aterrizan en tu proyecto, donde el Registry los
+  auto-monta.
+- **El módulo `Hello` generado usa `@Controller` class-based** — el stub de bienvenida estrena el
+  routing estilo Spring (`@Controller` + `@Get`) en vez del `APIRouter`.
+
+### Tests
+
+- Guardrail que **ejecuta el launcher `jornal`** (regresión del rename del entrypoint) tras
+  corregir que importaba el símbolo equivocado (`milpa` en vez de `app`).
+
 ## [0.2.0] - 2026-05-30
 
 DX de la consola: más comandos `jornal` (estilo `artisan`) y una lista coherente y legible.
@@ -83,6 +222,9 @@ Primera versión: el esqueleto del microframework + auth, demo y herramientas de
 ### Notas
 - Todo es **síncrono** (SQLAlchemy + Celery). Tests **sin base de datos** (fakes + monkeypatch).
 
-[Unreleased]: https://github.com/calcifux/milpa/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/calcifux/milpa/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/calcifux/milpa/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/calcifux/milpa/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/calcifux/milpa/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/calcifux/milpa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/calcifux/milpa/releases/tag/v0.1.0

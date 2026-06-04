@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "milpa"
-version = "0.3.1"
+version = "0.4.0"
 description = "Microframework Python estilo Laravel/Spring (FastAPI + Celery + SQLAlchemy + Typer) para construir monolitos modulares y migrar apps legacy."
 authors = [{ name = "@Calcifux (Carlos Guillermo Reyes Ramiro)" }]
 license = "MIT"
@@ -142,6 +142,6 @@ forbidden_modules = ["milpa.Modules"]
 [[tool.importlinter.contracts]]
 name = "Los módulos son independientes entre sí (no se importan unos a otros)"
 type = "independence"
-# Wildcard: cubre TODOS los módulos presentes (CFDI, Example, CSD futuro…) sin
+# Wildcard: cubre TODOS los módulos presentes sin
 # listarlos a mano. Agregar un módulo = cero edición aquí.
 modules = ["milpa.Modules.*"]
