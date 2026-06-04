@@ -53,6 +53,19 @@ Todo es **OPT-IN** y auto-descubrible (no estorba si no lo usas):
   Pydantic v2 (`computed_field`), soft-delete y timestamps automáticos; engine agnóstico del motor.
 - **HTTP** — controllers class-based (`@Controller`/`@Get`/`@Post`), Jinja2 + HTMX/Alpine (sin
   Inertia) · **i18n** (YAML) · **mail** (`Mailable` + drivers smtp/log/null + plantillas firmadas).
+- **Assets con Vite (estilo laravel-vite)** — el helper Jinja `vite('src/main.jsx')` (más
+  `vite_asset()` y `vite_react_refresh()`): en **dev** inyecta el cliente HMR desde el dev server
+  (vía hot-file por app); en **prod** lee `dist/.vite/manifest.json` y emite `<link>`/`<script>`
+  hasheados. milpa es dueño del shell HTML; Vite, del pipeline de assets. Sin apps detectadas no se
+  monta nada.
+- **Microfrontends por vertical (`surcos/`)** — cada equipo su app Vite en `surcos/<app>` con SU
+  tecnología (React/Vue/Svelte/vanilla); milpa sirve todos los shells en el **mismo origen, cero
+  CORS**, e inyecta runtime-config (`window.__ENV`, vía `shell_context()`) — lo que `VITE_*`/
+  `NEXT_PUBLIC_*` no pueden dar sin rebuild. *Forma tradicional* (cada SPA en su servidor con CORS
+  congelado en build-time) vs *estilo milpa* (el backend sirve los shells, mismo origen).
+- **PWA sin boilerplate** — `Pwa.webmanifest(request, ...)` y `Pwa.service_worker(...)` como
+  one-liners de controller: el manifest se arma **en runtime** (`start_url`/`scope` con el prefijo
+  real del deploy) y los iconos se auto-descubren del build por convención.
 
 > Cada feature tiene su página en el [manual](documentation/README.md) y se demuestra ejecutable
 > en el **módulo Demo** (contrastando la *forma tradicional* vs *estilo milpa*).
@@ -74,10 +87,17 @@ negociación de contenido, serializadores) y los **errores RFC 9457**.
 - Una **base de datos** alcanzable (el engine es agnóstico del motor: MySQL/MariaDB,
   PostgreSQL, Oracle, SQL Server, SQLite). Se elige con `DATABASE_URL`.
 - (Recomendado) **[uv](https://docs.astral.sh/uv/)** como gestor de entorno y deps.
+- **(OPT-IN, solo si usas frontends)** **Node** `^20.19.0 || >=22.12.0` (`.nvmrc` fija `20`, el piso real) y
+  **pnpm 11** para el pipeline de assets Vite de los `surcos/`. Si tu proyecto no tiene frontend,
+  no necesitas Node ni pnpm.
 
 ---
 
 ## 2. Instalación
+
+> **Nombre del paquete:** en PyPI se publica como **`milpa-core`** (el nombre `milpa` ya estaba
+> tomado); el **import** (`milpa.*`) y el **comando** (`jornal`/`milpa new`) siguen siendo `milpa`.
+> Un proyecto generado con `milpa new` depende de `milpa-core` (piso actual: `>=0.4.0`).
 
 ### Opción A — con `uv` (recomendada)
 
@@ -106,6 +126,21 @@ pip install --group dev            # herramientas de dev (pip >= 25.1)
 
 Con el venv **activado**, corre los comandos **sin** el prefijo `uv run`.
 
+### Frontend (OPT-IN — solo si tienes `surcos/`)
+
+Los microfrontends son un workspace **pnpm** (`pnpm-workspace.yaml`, `packages: surcos/*`):
+
+```bash
+pnpm install                       # en la raíz: instala TODOS los surcos de un jalón
+pnpm -r build                      # buildea cada surco → public/<app> (lo que sirve milpa en prod)
+pnpm --filter <surco> dev          # dev server con HMR de UN surco (escribe su hot-file)
+```
+
+> **Workspace sin phantom deps:** pnpm da `node_modules` **por paquete** (symlinks al store
+> global), así cada surco solo ve lo que **declara** (la phantom dep truena en dev, no al
+> extraer el surco a su propio repo). pnpm 11 no corre postinstall por default (anti
+> supply-chain): `allowBuilds` aprueba los explícitos (p. ej. `esbuild`, que Vite necesita).
+
 ---
 
 ## 3. Configuración (`.env`)
@@ -132,6 +167,12 @@ Variables clave (el `.env.example` trae todas, comentadas):
 | `AUTH_GUARD` / `JWT_SECRET` / `SESSION_SECRET` | Auth propia: guard por default + secretos del JWT (API) y de la sesión (browser). |
 | `PASSPORT_PUBLIC_KEY_PATH` | (Opcional) Llave pública para validar tokens OAuth2 de Laravel Passport (ver §4). |
 | `LOG_LEVEL` / `LOG_JSON` | Logging (Loguru). `LOG_JSON=true` agrega `logs/app.jsonl`. |
+| `ASSET_URL` | Prefijo público que `asset()`/`vite()` anteponen a sus URLs: CDN (`https://cdn.x.com`) o sub-ruta de reverse proxy. Default vacío. **DEBE coincidir** con el `ASSET_URL` con que se buildea el frontend. |
+| `VITE_APPS_DIR` | Carpeta de las fuentes de los microfrontends (un surco = un vertical). Default `surcos`. Es app toda carpeta con `hot` o `dist/.vite/manifest.json`. |
+| `VITE_PUBLIC_DIR` | Carpeta donde caen los builds (`vite build` de cada surco → `public/<app>`); milpa la monta completa. Default `public`. |
+| `VITE_DIST_DIR` | Override **explícito** para una sola app (frontend en la raíz, estilo Laravel): apunta directo al `dist/` y se ignora la auto-detección. Default vacío. |
+| `VITE_HOT_FILE` | Hot-file del modo una-sola-app (con `VITE_DIST_DIR`). Default vacío => `<dist>/../hot`. En multi-app el hot-file es siempre `<app>/hot`. |
+| `VITE_ASSETS_URL` | Raíz pública de los assets: cada surco se sirve en `<assets_url>/<app>`. Default `/vite`. **DEBE coincidir** con el `base` del `vite.config`. |
 
 > **Host vs Docker:** si corres la app en el host (lo normal en dev), usa
 > `localhost`/`127.0.0.1` en las URLs. El `.env.example` asume Docker y lo aclara.
@@ -188,6 +229,23 @@ por default escucha en `127.0.0.1:$APP_PORT` con `--reload`.
 > `APP_ENV` (`environments=[...]`), lock en Redis (`without_overlapping=True`) y logs
 > por cron con rotación (`output="<nombre>"`).
 
+### Frontend en dev (OPT-IN)
+
+Si tienes `surcos/`, corre **en paralelo** a `jornal serve` el dev server del surco que estés
+tocando:
+
+```bash
+uv run python jornal serve            # milpa sirve los shells (mismo origen)
+pnpm --filter demo-spa dev            # dev server con HMR de UN surco
+```
+
+El dev server escribe el **hot-file** de su app (`surcos/<app>/hot`, con la URL del dev server);
+el helper `vite()` lo detecta y emite el cliente HMR apuntando ahí — la página la sirve milpa, los
+módulos los sirve Vite (el navegador habla con ambos). Cada surco tiene su hot-file, así un equipo
+puede estar en dev con HMR mientras los demás corren su build, sin estorbarse. En **prod** no hay
+hot-file: `pnpm -r build` deja cada surco en `public/<app>`, milpa lo monta en `VITE_ASSETS_URL` y
+`vite()` emite los assets hasheados del manifest.
+
 ---
 
 ## 🎮 Demo corrible
@@ -217,6 +275,22 @@ uv run python jornal serve           # http://127.0.0.1:8000
 
 El demo vive en `app/Modules/Demo/`; los modelos `User`/`Note` en `app/Models/`. Más en
 [Autenticación](documentation/15-autenticacion.md).
+
+### Microfrontends del demo (StackCraft)
+
+El demo también trae dos `surcos/` que milpa sirve **en el mismo origen**, cada uno con su
+controller:
+
+- **`demo-spa`** (React 19 + react-router 7, con **file-router** por convención + **PWA**
+  Serwist offline-first) → servido por `SpaController` en **`/spa`** (con catch-all SPA-fallback
+  acotado al prefijo; `manifest.webmanifest` y `sw.js` como one-liners `Pwa.*`).
+- **`tablero`** (vanilla JS, sin PWA) → servido por `TableroController` en **`/tablero`** — para
+  mostrar que la convención del shell es del **framework**, no de la tecnología del frontend.
+
+Con `pnpm install && pnpm -r build` (o `pnpm --filter demo-spa dev` para HMR) abres
+`http://127.0.0.1:8000/spa` y `…/tablero`. **`milpa new <proj> --demo` materializa también el
+frontend**: copia los surcos + el `package.json` raíz pnpm + `pnpm-workspace.yaml` + `.nvmrc` (los
+PNG de la PWA viajan intactos), no solo el módulo Python.
 
 ---
 
@@ -261,14 +335,20 @@ src/milpa/           # EL PAQUETE importable (instalación local; ver §2)
     Auth/            #   RBAC + ABAC (Gate/@policy), JWT + sesión, Passport
     Errors/          #   DomainError + RFC 9457 (problem+json)
     Http/            #   create_app() FastAPI + @Controller + RateLimit + middlewares
+                     #   + Shell (runtime-config del shell: base_path/runtime_env_json/shell_context)
     Mail/            #   Mailable + Mailer (smtp/log/null) + TemplateEngine
     Translate/       #   i18n (i18nice, YAML)
-    View/            #   templates (Jinja2) + negotiate()
+    View/            #   templates (Jinja2) + negotiate() + Vite (helper vite()) + Pwa (manifest/SW)
   Models/            # modelos SQLAlchemy compartidos (auto-discovery)
   Dictionaries/      # constantes de dominio (auto-discovery por submódulo)
   Modules/
     Demo/            # módulo de referencia: users/notes + TODOS los patrones, ejecutable
   Resources/         # assets/lang/views compartidos
+surcos/              # FRONTEND (OPT-IN): una app Vite por vertical (microfrontend) — surcos/<app>
+public/              # builds de Vite (vite build de cada surco → public/<app>); GENERADO, gitignored
+package.json         # raíz del workspace pnpm de los surcos (scripts dev/build)
+pnpm-workspace.yaml  # workspaces pnpm (surcos/*): node_modules por paquete + allowBuilds
+.nvmrc               # versión de Node para los frontends (20, el piso real)
 Tests/               # tests unitarios (espeja src/milpa/ 1:1, sin BD)
 migrations/          # revisiones Alembic (motor-agnóstico)
 documentation/       # manual de usuario (mkdocs)
@@ -312,6 +392,12 @@ desenredar imports cruzados.
 
 No tocas el kernel: el framework descubre modelos, diccionarios, recursos, comandos y
 crons por convención.
+
+**Si el módulo trae frontend:** agrega su app Vite como un surco (`surcos/<app>`, con su
+`vite.config` usando `vite-plugin-milpa`) y, en el `Http/` del módulo, un controller que sirva el
+shell Jinja con el helper `vite()` (más `shell_context(request)` para el `window.__ENV`). Es el
+mismo patrón del Demo (`SpaController`/`TableroController`): el surco se auto-detecta por convención
+y milpa lo sirve en `<VITE_ASSETS_URL>/<app>` — mismo origen, cero CORS.
 
 ---
 
