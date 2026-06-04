@@ -16,10 +16,12 @@ allowBuilds:
 # pnpm exige una edad mínima de publicación antes de instalar (anti supply-chain);
 # nuestro propio plugin se exime al salir del horno. Borrable cuando la versión madure.
 minimumReleaseAgeExclude:
-  - vite-plugin-milpa@0.1.1
+  - vite-plugin-milpa@0.1.2
 
 # ¿Necesitas desarrollar/parchar vite-plugin-milpa contra este repo SIN esperar
 # release? Clónalo al lado (github.com/calcifux/vite-plugin-milpa) y descomenta:
 # los surcos usarán tu copia local en vez de la versión publicada en npm.
+# (Al togglear esto pnpm puede decir "Already up to date": fuerza con
+#  `rm -rf node_modules surcos/*/node_modules pnpm-lock.yaml && pnpm install`.)
 # overrides:
 #   vite-plugin-milpa: link:../vite-plugin-milpa

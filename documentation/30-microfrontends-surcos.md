@@ -67,7 +67,7 @@ allowBuilds:
 # pnpm exige una edad mínima de publicación antes de instalar (anti supply-chain);
 # nuestro propio plugin se exime al salir del horno.
 minimumReleaseAgeExclude:
-  - vite-plugin-milpa@0.1.1
+  - vite-plugin-milpa@0.1.2
 
 # ¿Desarrollar/parchar vite-plugin-milpa contra este repo SIN esperar release?
 # Clónalo al lado y descomenta:
@@ -90,7 +90,8 @@ Tres detalles deliberados:
 
 Los requisitos del frontend son **opt-in** (un proyecto solo-Jinja no los necesita):
 
-- **Node** `^20.19.0 || >=22.12.0` (el `.nvmrc` fija `20`, el piso real).
+- **Node** `>=22.13` (el `.nvmrc` fija `22`: pnpm 11 usa `node:sqlite`; Vite 7 por sí
+  solo corre desde 20.19, pero el workspace se opera con pnpm).
 - **pnpm 11** (declarado en `packageManager`/`volta`).
 
 ```bash
@@ -103,7 +104,7 @@ pnpm -r build                    # buildea todos los surcos
 ## `vite-plugin-milpa`: el pegamento
 
 Cada `vite.config.js` es mínimo — todo el pegamento con milpa vive en el plugin npm
-`vite-plugin-milpa` (publicado, `^0.1.1`). Lo único que escribes:
+`vite-plugin-milpa` (publicado, `^0.1.2`). Lo único que escribes:
 
 ```js
 // surcos/demo-spa/vite.config.js
@@ -132,8 +133,9 @@ secas. Qué hace el plugin:
 - **file-router runtime** — trae un router por archivos (`vite-plugin-milpa/router`), espejo
   del auto-montado de `Modules/<X>/Http` del backend (ver abajo).
 
-> `vite-plugin-milpa@0.1.1` agrega chunks con nombre legible (en vez de hashes opacos), para
-> que el manifest y el panel de red del navegador se lean fácil.
+> `vite-plugin-milpa@0.1.1` agregó chunks con nombre legible (en vez de hashes opacos), para
+> que el manifest y el panel de red del navegador se lean fácil; `0.1.2` corrige el modo dev
+> con PWA (el middleware de serwist tronaba en cada request). El piso es `^0.1.2`.
 
 ### El file-router (espejo del backend)
 

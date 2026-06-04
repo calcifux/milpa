@@ -13,22 +13,34 @@ import './styles.css';
 
 const BASE = `${window.__ENV?.BASE_PATH ?? ''}/spa`;
 
-const router = createBrowserRouter(
-    [
-        {
-            path: '/',
-            element: <Layout/>,
-            children: buildRoutes(),
-        },
-    ],
-    {basename: BASE},
-);
+// Trampa clásica: abrir el dev server (:5173) DIRECTO en el navegador. Vite solo
+// sirve módulos y HMR — el shell (con window.__ENV) lo sirve milpa. Sin __ENV,
+// aviso claro en vez de una página en blanco con un warning críptico del router.
+if (!window.__ENV) {
+    document.getElementById('root').innerHTML =
+        '<main style="font-family:monospace;padding:2rem;line-height:1.6">'
+        + '<h1>🌽 Este es el dev server de Vite (solo assets/HMR)</h1>'
+        + '<p>La app se abre por el shell de milpa: '
+        + '<a href="http://127.0.0.1:8000/spa">http://127.0.0.1:8000/spa</a> '
+        + '(o el APP_PORT de tu .env).</p></main>';
+} else {
+    const router = createBrowserRouter(
+        [
+            {
+                path: '/',
+                element: <Layout/>,
+                children: buildRoutes(),
+            },
+        ],
+        {basename: BASE},
+    );
 
-createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-        <RouterProvider router={router}/>
-    </React.StrictMode>,
-);
+    createRoot(document.getElementById('root')).render(
+        <React.StrictMode>
+            <RouterProvider router={router}/>
+        </React.StrictMode>,
+    );
+}
 
 // PWA: registro MANUAL del Service Worker (no virtual:serwist — bajo subpath el
 // scope no se auto-deriva). Solo en PROD: en dev el SW serviría assets stale y

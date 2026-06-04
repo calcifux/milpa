@@ -87,7 +87,7 @@ negociación de contenido, serializadores) y los **errores RFC 9457**.
 - Una **base de datos** alcanzable (el engine es agnóstico del motor: MySQL/MariaDB,
   PostgreSQL, Oracle, SQL Server, SQLite). Se elige con `DATABASE_URL`.
 - (Recomendado) **[uv](https://docs.astral.sh/uv/)** como gestor de entorno y deps.
-- **(OPT-IN, solo si usas frontends)** **Node** `^20.19.0 || >=22.12.0` (`.nvmrc` fija `20`, el piso real) y
+- **(OPT-IN, solo si usas frontends)** **Node** `>=22.13` (`.nvmrc` fija `22`: pnpm 11 usa `node:sqlite`) y
   **pnpm 11** para el pipeline de assets Vite de los `surcos/`. Si tu proyecto no tiene frontend,
   no necesitas Node ni pnpm.
 
@@ -348,7 +348,7 @@ surcos/              # FRONTEND (OPT-IN): una app Vite por vertical (microfronte
 public/              # builds de Vite (vite build de cada surco → public/<app>); GENERADO, gitignored
 package.json         # raíz del workspace pnpm de los surcos (scripts dev/build)
 pnpm-workspace.yaml  # workspaces pnpm (surcos/*): node_modules por paquete + allowBuilds
-.nvmrc               # versión de Node para los frontends (20, el piso real)
+.nvmrc               # versión de Node para los frontends (22: pnpm 11 exige >=22.13)
 Tests/               # tests unitarios (espeja src/milpa/ 1:1, sin BD)
 migrations/          # revisiones Alembic (motor-agnóstico)
 documentation/       # manual de usuario (mkdocs)

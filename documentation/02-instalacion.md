@@ -8,7 +8,7 @@
   PostgreSQL, Oracle, SQL Server, SQLite); se elige con `DATABASE_URL`.
 - (Recomendado) [**uv**](https://docs.astral.sh/uv/) como gestor de entorno y deps.
 - **(Opt-in) Frontend Vite** — solo si usas el asset-pipeline o los microfrontends
-  (surcos): **Node** `^20.19.0 || >=22.12.0` (el `.nvmrc` fija `20`, el piso real) y **pnpm 11**. Un
+  (surcos): **Node** `>=22.13` (el `.nvmrc` fija `22`: pnpm 11 usa `node:sqlite`) y **pnpm 11**. Un
   proyecto que solo renderiza HTML con Jinja **no** los necesita. Ver
   [Vite y assets](29-vite-y-assets.md).
 

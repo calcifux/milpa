@@ -48,10 +48,11 @@ abre CORS con la config congelada en *build-time*; estilo milpa el backend es du
 
 #### Frontend (paquete npm + scaffolder)
 
-- **Plugin npm `vite-plugin-milpa` `^0.1.1`** (publicado) — deriva el `base` de la carpeta del
+- **Plugin npm `vite-plugin-milpa` `^0.1.2`** (publicado) — deriva el `base` de la carpeta del
   surco, escribe el manifest y el *hot-file* que leen los helpers Jinja, y trae un **file-router**
   de runtime (`vite-plugin-milpa/router`) que es el espejo del auto-montado de `Modules/<X>/Http`
-  del backend. `0.1.1` agrega chunks con nombre legible.
+  del backend. `0.1.1` agregó chunks con nombre legible; `0.1.2` corrige el modo dev con
+  PWA (el middleware de serwist tronaba en cada request del dev server).
 - **`milpa new --demo` materializa también el frontend** (`_skeleton_demo`): los surcos +
   `package.json` raíz pnpm + `pnpm-workspace.yaml` (con el override a `link:` comentado) + `.nvmrc`.
   Regla por sufijo: `.tmpl` = texto renderizado, el resto = bytes intactos (los PNG de la PWA
@@ -93,7 +94,7 @@ abre CORS con la config congelada en *build-time*; estilo milpa el backend es du
 
 ### Notas
 
-- Frontend **OPT-IN**: requiere Node `^20.19.0 || >=22.12.0` (`.nvmrc` = 20, el piso real) y **pnpm 11**
+- Frontend **OPT-IN**: requiere Node `>=22.13` (`.nvmrc` = 22; pnpm 11 usa `node:sqlite`) y **pnpm 11**
   (`packageManager`/volta). Comandos: `pnpm install` en la raíz · `pnpm --filter <surco> dev` ·
   `pnpm -r build`. Sin tocar nada de esto, milpa sigue sirviendo lo de siempre.
 
