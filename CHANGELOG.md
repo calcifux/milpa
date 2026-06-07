@@ -7,6 +7,54 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-06-07
+
+**Ciudadanía en un broker compartido.** El origen es un incidente real: en la mega-red **aqua**
+del dueño, varias apps milpa/tequio apuntaban al **mismo redis db** y empezaron a robarse tasks.
+Dos fallos a la vez — una task que la app vecina **no conoce** se descarta (`KeyError` =
+**corrida perdida**), y `mail.send`/`events.handle` (registradas con el mismo nombre en TODAS
+las apps) se ejecutan **cruzadas en silencio**, con la config equivocada (el correo de una app
+sale por el SMTP de otra, sin un solo error). El db-por-app mitiga, pero muere en **Redis
+Cluster** (solo expone el db 0). Más un segundo hoyo destapado de paso: los defaults del layout
+apuntaban al paquete del framework, así que una instalación **sin `.env`** auto-descubría el
+Demo EMPAQUETADO y agendaba su cron en el broker del usuario.
+
+### Added
+
+- **`QUEUE_NAMESPACE`** (env; default `""` = comportamiento actual, 100% retrocompatible): prefijo
+  de colas para convivir en un broker compartido. Con un valor, la cola por defecto pasa a
+  `<ns>.celery` (vía `task_default_queue`, lo que aísla TODO despacho **sin** `queue=` explícito:
+  `events.handle`, `Mail.queue` sin cola, jobs/crons a la default) y las colas con nombre se
+  prefijan `<ns>.<cola>`. Un resolvedor único — `qualified_queue(name)` en
+  `Core/CeleryApp/Dispatch.py`, exportado en `Core/CeleryApp` — aplica el prefijo en UN solo
+  lugar; por él pasa cada call-site con `queue=` explícito (`enqueue_mail`, `Job.dispatch`, el
+  despacho de crons en `schedule run`, las entradas del beat y el worker `queue work --queue a,b`,
+  que califica **cada** nombre de la lista). A diferencia del db-por-app, **sobrevive en Redis
+  Cluster** (todo vive en el db 0). El lock anti-overlapping de los crons también se namespacea:
+  `cron-lock:<name>` → `cron-lock:<ns>:<name>` (sin ns, la key actual intacta). *(Hermano de
+  tequio 0.1.4; el kernel queda idéntico entre ambos.)*
+
+### Changed
+
+- **Los defaults del layout apuntan al usuario, no al framework**: `MODULES_PACKAGE`,
+  `MODELS_PACKAGE` y `APP_COMMANDS_PACKAGE` pasan de `milpa.*` a `app.Modules` / `app.Models` /
+  `app.Console.Commands` (el layout que genera `milpa new`). Así una instalación **sin `.env`
+  configurado** ya NO auto-descubre el Demo EMPAQUETADO del framework (era la causa de que un
+  usuario terminara agendando el cron del Demo en SU broker). El dev que trabaja DENTRO de este
+  repo (código en `src/milpa`, no en `app/`) re-apunta los tres paquetes a `milpa.*` en su
+  `.env`; en la suite, `Tests/conftest.py` ya hace ese `setdefault` para mantener el discovery
+  del Demo con el default nuevo.
+- **El cron del Demo gatea por entorno**: `DailyDigestCron` gana `environments=("local",
+  "development")` — cinturón extra para que, ni apuntando `MODULES_PACKAGE` al Demo a propósito,
+  el digest se agende en producción.
+
+### Tests
+
+- Cobertura nueva (sin BD): el resolvedor `qualified_queue` (passthrough sin ns, `None`→`None`,
+  prefijo con ns, `None`-con-ns), la `task_default_queue` del `celery_app` (intacta sin ns,
+  `<ns>.celery` con ns), `enqueue_mail`/`Job.dispatch`/el despacho de cron/las opciones del beat
+  califican su cola, el CLI mapea la lista `--queue`, y la key del lock con/sin ns.
+
 ## [0.6.1] - 2026-06-07
 
 ### Added
@@ -364,7 +412,11 @@ Primera versión: el esqueleto del microframework + auth, demo y herramientas de
 ### Notas
 - Todo es **síncrono** (SQLAlchemy + Celery). Tests **sin base de datos** (fakes + monkeypatch).
 
-[Unreleased]: https://github.com/calcifux/milpa/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/calcifux/milpa/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/calcifux/milpa/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/calcifux/milpa/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/calcifux/milpa/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/calcifux/milpa/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/calcifux/milpa/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/calcifux/milpa/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/calcifux/milpa/compare/v0.2.0...v0.3.0
