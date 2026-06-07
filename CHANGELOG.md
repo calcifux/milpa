@@ -7,6 +7,77 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-07
+
+Los backports de lo aprendido en los proyectos hermanos — tequio-core (la extracción worker-side,
+PyPI `tequio-core`) y aklara-dispersa (la primera app real) — más la **fachada pública** del
+framework. Plan y evidencia: `docs/prerelease/34-backports-tequio-aklara.md`.
+
+### Added
+
+- **Fachada pública perezosa** (`from milpa import job, Controller, view, Mail, Repository, …`):
+  la API estable en un import plano (PEP 562), incluida la superficie web. `import milpa` a secas
+  queda SIN efectos colaterales (no instancia Celery, ni Settings, ni el engine) y las rutas
+  profundas (`from milpa.Core.Http import Controller`) siguen siendo válidas. *(Patrón estrenado
+  en tequio 0.1.2.)*
+- **`py.typed`** (PEP 561): milpa es mypy-strict pero no publicaba sus tipos; los consumidores de
+  `milpa-core` ahora reciben los type hints completos.
+
+- **`jornal serve` detrás de reverse proxy sin flags**: si `ASSET_URL` es una RUTA (`/prefijo`),
+  viaja también como `root_path` ASGI — una sola variable y la app entera sabe que vive bajo el
+  prefijo (`BASE_PATH` del `window.__ENV`, redirects vía `base_path()`). Un CDN (`https://`) no es
+  prefijo: root raíz, como siempre. **Validado con reverse proxy en docker** (aklara-dispersa, donde
+  vivió como command del proyecto hasta hoy).
+- **Scopes any-of de Passport**: `require_any_scope(...)` + el decorador `@Scope(...)` — el
+  `scope:a,b` (CheckForAnyScope, ALGUNO) de Laravel Passport; milpa solo cubría `scopes:a,b`
+  (CheckScopes, TODOS) con `require_scopes`. Destilado del Auth de la primera app real.
+- **`set_revocation_check(fn)`**: API pública para el hook de revocación de tokens que antes era
+  solo un seam privado (`Passport._is_revoked`) — el proyecto conecta su consulta (p. ej. contra
+  `oauth_access_tokens` del legacy) sin monkeypatchear; el monkeypatch viejo sigue funcionando.
+- **`@Fallback` (catch-all post-mounts)**: registro OPT-IN de un controller que `create_app()` monta
+  AL FINAL — después de `/static`, `/vite` y `/status`. Una SPA puede ser dueña de la raíz sin
+  tragarse los estáticos (en Starlette gana el primer match; antes el workaround era prefijo propio
+  + redirect de `/`).
+- **`assets_dev()`**: el template/shell ya puede saber si los assets vienen del dev server o del
+  build (la convención del hot-file, expuesta) — para gatear speculation rules y similares sin que
+  cada app replique la convención. Disponible como global de Jinja y opcional en `window.__ENV`.
+- **El beat agenda los `@cron_task`** *(adoptado de tequio)*: `collect_beat_schedule()` fusiona los
+  `@cron_task(schedule=…)` auto-descubiertos (su expresión cron convertida con el nuevo
+  `to_crontab()`, conversor estricto de 5 campos que truena claro ante una expresión rara) con los
+  `beat_schedule` de `Console/Kernel.py` (la vía declarativa, con precedencia). El
+  `demo.daily_digest` que declaraba `daily_at("08:00")` desde 0.x por fin entra al calendario de
+  `schedule work`. Los gates de ejecución (anti-overlap, `environments`) siguen en `@cron_task`.
+  OJO operativo: beat **o** crontab del SO con `schedule run` — las dos vías a la vez = doble
+  despacho.
+- Skeleton: `pythonpath = ["."]` en el `pyproject.toml` generado — los tests del proyecto importan
+  `app.*` sin tocar `sys.path` (feedback de la primera app real).
+- 24 tests nuevos, incluidos los guardrails `test_WorkerTaskDiscovery` (las tasks del framework
+  quedan registradas en el worker), `test_FallbackOrder` (los mounts ganan al fallback) y
+  `test_FakerLazy` (importar factories no exige la dep de dev).
+
+### Changed
+
+- **`Mail.queue`/`enqueue_mail` truenan AL ENCOLAR** si el `__init__` del Mailable exige argumentos
+  y no se pasó `init_kwargs` *(bug real cazado en tequio)*: antes el `TypeError` ocurría en el
+  worker al reinstanciar — fallo asíncrono invisible para quien encoló. Ahora el `ValueError` sale
+  en el proceso que encola, con instrucción accionable.
+- **Faker perezoso** (`_LazyFaker` proxy): importar `Core/Database/Faker` (y por tanto cualquier
+  factory) ya no exige tener `faker` instalado — el error accionable sale solo al USARLO. Defensa
+  en profundidad: hoy el discovery de milpa no importa factories en runtime, pero cualquier import
+  futuro lo haría tronar en una instalación sin dev-deps *(le pasó a tequio en su smoke de CI)*.
+- `make:mailable` genera un stub rico: asume la cola **`emails`** (`Mail.queue(..., queue="emails",
+  init_kwargs=…)`, se consume con `queue work --queue emails`), apunta la plantilla a la convención
+  namespaced del módulo y recuerda el contrato de `init_kwargs`.
+- `resolve_apps()` (Vite) ahora se cachea — la estructura de surcos no se re-escanea del filesystem
+  en cada uso; el estado VIVO del hot-file (dev vs build) NO se congela. Escape: `clear_apps_cache()`.
+
+### Fixed
+
+- Docstrings que mentían: `CeleryApp`/`ScheduleWorkCommand` decían que el beat juntaba los crons de
+  todos los módulos (solo leía `Console/Kernel.py` — ahora con el cambio de arriba la frase es
+  verdad y quedó precisa); `Clock.py` afirmaba el patrón `self._database.clock.now()` que nunca
+  estuvo cableado (el reloj se inyecta a mano; `FixedClock` = `Carbon::setTestNow`).
+
 ## [0.4.0] - 2026-06-04
 
 Frontend a la milpa: asset-pipeline **Vite** estilo `laravel-vite`, **microfrontends por vertical**
