@@ -57,3 +57,6 @@ node_modules/
 surcos/*
 !surcos/.gitkeep
 pnpm-lock.yaml
+
+# Herramientas internas del mantenedor (drift-guard y backport milpa↔tequio) — NO se publican
+tools/
