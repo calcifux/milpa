@@ -7,6 +7,34 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-06-08
+
+### Fixed
+
+- El test `test_csp_header_when_configured` asumía CSP en *enforcing*, pero desde 0.6.6 el default es
+  **report-only** (`Content-Security-Policy-Report-Only`). Ese test rompía el publish de 0.6.6 a PyPI
+  (que nunca llegó a salir). Reescrito en dos casos: report-only por default + enforcing real con
+  `csp_report_only=false` (cubre el switch del nombre del header). **0.6.7 es el primer release de la
+  feature CSP/auth que llega a PyPI** — el contenido de 0.6.6 (abajo) viaja en 0.6.7.
+
+## [0.6.6] - 2026-06-08
+
+### Added
+
+- **CSP (Content-Security-Policy) por default, en modo Report-Only.** El `SecurityHeadersMiddleware`
+  ahora trae una política CSP sana para SPA como default (`CONTENT_SECURITY_POLICY`), emitida como
+  `Content-Security-Policy-Report-Only`: el navegador **observa y reporta** violaciones pero **NO
+  bloquea** — seguro para apps existentes. Nuevos settings: `CSP_REPORT_ONLY` (default `true`) y
+  `CSP_REPORT_URI` (opcional). Se pasa a *enforcing* real con `CSP_REPORT_ONLY=false` (el header
+  cambia solo a `Content-Security-Policy`) cuando la política está afinada. Motivación: mitigar el
+  robo de token por XSS cuando la auth usa un cookie legible por JS (defensa en profundidad que NO
+  toca el flujo de auth) — el dolor concreto de la flota legacy. Documentado en
+  `documentation/15-autenticacion.md`.
+- **Capacidad `auth` del scan (`jornal scan --only auth`).** Reporta el estado de la auth web: sin
+  CSP (warn), CSP en report-only (info: observa pero aún no protege), CSRF deshabilitado (info). Solo
+  aplica a apps con capa web — un worker-only (sin esos settings) se salta sin tronar. Se auto-descubre
+  como las demás capacidades.
+
 ## [0.6.5] - 2026-06-08
 
 ### Added
